@@ -11,7 +11,7 @@ Released as open source by [Synacktiv 🥷](https://www.synacktiv.com/)
 
 ![Demo GIF](img/demo.gif)
 
-## Getting Start
+## Getting started
 
 
 ### Installation
@@ -25,7 +25,7 @@ Execute `gradle build` and you'll have the plugin ready in `releases/HopLa.jar`.
 
 ## Usage
 
-By default HopLa is ship with default payloads. You can add your's by loading a custom JSON file in the the menu. 
+By default HopLa is shipped with default payloads. You can add yours by loading a custom JSON file in the the menu. 
 
 At the first usage HopLa creates a JSON file containing all the payloads in the jar file directory.
 
@@ -41,7 +41,7 @@ for_window [class=".*burp-StartBurp.*" title="^ $"] floating enable
 
 ### How to add payloads
 
-The JSON payload file follow the structure:
+The JSON payloads file follow the structure:
 
 ```json
 {
