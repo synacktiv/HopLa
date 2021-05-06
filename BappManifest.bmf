@@ -1,0 +1,12 @@
+Uuid: 48006894b97966581660047517ea3f42
+ExtensionType: 1
+Name: HopLa
+RepoName: HopLa
+ScreenVersion: 1.0
+SerialVersion: 0
+MinPlatformVersion: 0
+ProOnly: False
+Author: Alexis Danizan / Synacktiv
+ShortDescription: Enable autocompletion for payload.
+EntryPoint: releases/HopLa.jar
+BuildCommand: gradle jar

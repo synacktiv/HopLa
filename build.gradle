@@ -1,0 +1,29 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'net.portswigger.burp.extender:burp-extender-api:1.7.22'
+    compile 'com.googlecode.json-simple:json-simple:1.1.1'
+    compile 'commons-io:commons-io:2.8.0'
+}
+
+jar{
+    baseName = project.name
+    from {
+        (configurations.compile).collect { it.isDirectory() ? it : zipTree(it) }
+    }{
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+}
+
+tasks.withType(Jar) {
+    destinationDir = file("$rootDir/releases")
+}
