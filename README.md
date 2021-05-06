@@ -119,6 +119,7 @@ To add only keywords that do not appear in the menu, you can add them in the key
 
  * https://github.com/Static-Flow/BurpSuiteAutoCompletion
  * https://github.com/d3vilbug/HackBar
+ * https://github.com/swisskyrepo/PayloadsAllTheThings
 
 Thanks a lot for your awesome work !
 
