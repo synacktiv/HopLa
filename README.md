@@ -54,6 +54,10 @@ The JSON payload file follow the structure:
                     "value": "<script>alert(1)</script>"
                 },
                 {
+                    "name": "Multiline",
+                    "value": "AAAA\nBBBB"
+                },
+                {
                     "name" : "Nested XSS menu",
                     "values": [
                         {
