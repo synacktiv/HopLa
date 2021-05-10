@@ -496,7 +496,10 @@ public class Completer implements DocumentListener, CaretListener {
             return;
         }
         
-        
+        // corner case for http method
+        if (startPos == 0){
+            start = -1;
+        }
         String prefix = content.substring(start +1);
         stdout.println(prefix);
 
