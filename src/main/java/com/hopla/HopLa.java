@@ -45,7 +45,7 @@ import java.io.File;
 
 import java.io.FileWriter;
 import java.io.IOException;
-
+import java.awt.Container;
 
 public class HopLa implements IBurpExtender, IContextMenuFactory, IExtensionStateListener, AWTEventListener {
 
@@ -188,6 +188,16 @@ public class HopLa implements IBurpExtender, IContextMenuFactory, IExtensionStat
     public void eventDispatched(AWTEvent event) {
         if(event.getSource() instanceof JTextArea) {
             JTextArea source = ((JTextArea)event.getSource());
+	    // hooks only message editor and intruder
+
+            Container is_editor = SwingUtilities.getAncestorNamed("requestResponseViewer",source);
+            //Container is_repeater = SwingUtilities.getAncestorNamed("httpRequestMessageAnalyser",source);
+            Container is_intruder = SwingUtilities.getAncestorNamed("intruderControlPanelTabBar",source);
+
+            if (is_intruder == null && is_editor == null){
+                return;
+            }
+		
             if(source.getClientProperty("hasListener") ==  null || !((Boolean) source.getClientProperty("hasListener"))) {
                 if (enableCompletion){
                     Completer t = new Completer(source, keywords, this.stdout, this.stderr);
