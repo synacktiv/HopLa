@@ -197,6 +197,9 @@ public class HopLa implements IBurpExtender, IContextMenuFactory, IExtensionStat
             if (is_intruder == null && is_editor == null){
                 return;
             }
+	    if (!source.isEditable()){
+                return;
+            }
 		
             if(source.getClientProperty("hasListener") ==  null || !((Boolean) source.getClientProperty("hasListener"))) {
                 if (enableCompletion){
