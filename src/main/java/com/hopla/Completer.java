@@ -190,7 +190,11 @@ public class Completer implements DocumentListener, CaretListener {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
-                                source.select(start+1,pos);
+				 if (startPos == 0){
++                                    source.select(start,pos);
++                                }else{
++                                    source.select(start+1,pos);
++                                }
                                 source.replaceSelection(selectedCompletion);
                                 source.setCaretPosition(source.getSelectionEnd());
                                 suggestionPane.setVisible(false);
@@ -219,7 +223,12 @@ public class Completer implements DocumentListener, CaretListener {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
-                                source.select(start+1,pos);
+				 if (startPos == 0){
++                                    source.select(start,pos);
++                                }else{
++                                    source.select(start+1,pos);
++                                }
+                                
                                 source.replaceSelection(val);
                                 source.setCaretPosition(source.getSelectionEnd());
                                 suggestionPane.setVisible(false);
@@ -292,7 +301,7 @@ public class Completer implements DocumentListener, CaretListener {
         // Source JTextarea listener
         this.source.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e){
-                if (e.getModifiers() == KeyEvent.CTRL_MASK){
+                if (e.getModifiersEx() == KeyEvent.CTRL_DOWN_MASK || e.getModifiersEx() == (KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK)){
                     mode_insert = true;
                     startPos = -1;
                     pos -= 1;
@@ -330,7 +339,11 @@ public class Completer implements DocumentListener, CaretListener {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
-                                source.select(start+1,pos);
+                                if (startPos == 0){
++                                    source.select(start,pos);
++                                }else{
++                                    source.select(start+1,pos);
++                                }
                                 source.replaceSelection(values.get(0).toString());
                                 source.setCaretPosition(source.getSelectionEnd());
                                 suggestionPane.setVisible(false);
@@ -349,9 +362,9 @@ public class Completer implements DocumentListener, CaretListener {
                         break;
 
                     case KeyEvent.VK_BACK_SPACE:
-                    stdout.println(in_selection);
+                    /*stdout.println(in_selection);
                     stdout.println(selection_size);
-                    stdout.println(pos);
+                    stdout.println(pos);*/
                         if (in_selection){
                             mode_insert = true;
                         }else{
