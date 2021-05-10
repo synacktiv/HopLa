@@ -191,10 +191,10 @@ public class Completer implements DocumentListener, CaretListener {
                             @Override
                             public void run() {
 				 if (startPos == 0){
-+                                    source.select(start,pos);
-+                                }else{
-+                                    source.select(start+1,pos);
-+                                }
+                                    source.select(start,pos);
+                                }else{
+                                    source.select(start+1,pos);
+                                }
                                 source.replaceSelection(selectedCompletion);
                                 source.setCaretPosition(source.getSelectionEnd());
                                 suggestionPane.setVisible(false);
@@ -224,10 +224,10 @@ public class Completer implements DocumentListener, CaretListener {
                             @Override
                             public void run() {
 				 if (startPos == 0){
-+                                    source.select(start,pos);
-+                                }else{
-+                                    source.select(start+1,pos);
-+                                }
+                                    source.select(start,pos);
+                                }else{
+                                    source.select(start+1,pos);
+                                }
                                 
                                 source.replaceSelection(val);
                                 source.setCaretPosition(source.getSelectionEnd());
@@ -340,10 +340,10 @@ public class Completer implements DocumentListener, CaretListener {
                             @Override
                             public void run() {
                                 if (startPos == 0){
-+                                    source.select(start,pos);
-+                                }else{
-+                                    source.select(start+1,pos);
-+                                }
+                                    source.select(start,pos);
+                                }else{
+                                   source.select(start+1,pos);
+                               }
                                 source.replaceSelection(values.get(0).toString());
                                 source.setCaretPosition(source.getSelectionEnd());
                                 suggestionPane.setVisible(false);
