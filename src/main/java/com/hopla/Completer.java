@@ -32,6 +32,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowEvent;
 import javax.swing.text.DefaultCaret;
+import java.awt.event.MouseEvent;
 
 public class Completer implements DocumentListener, CaretListener {
     
@@ -61,13 +62,18 @@ public class Completer implements DocumentListener, CaretListener {
     public ArrayList<String> keywords;
     private Boolean mode_insert = false;
     private Boolean in_selection = false;
+    private Boolean in_completion = false;
     private int selection_size = -1;
+    private Boolean no_caret_update = false;
 
     /**
      * This listener follows the caret and updates where we should draw the suggestions box
      */
     @Override
     public void caretUpdate(CaretEvent e) {
+        if (no_caret_update){
+            return;
+        }
         pos = e.getDot();
         if (e.getMark() != e.getDot()){
             in_selection = true;
@@ -190,7 +196,7 @@ public class Completer implements DocumentListener, CaretListener {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
-				 if (startPos == 0){
+                                if (startPos == 0){
                                     source.select(start,pos);
                                 }else{
                                     source.select(start+1,pos);
@@ -198,6 +204,7 @@ public class Completer implements DocumentListener, CaretListener {
                                 source.replaceSelection(selectedCompletion);
                                 source.setCaretPosition(source.getSelectionEnd());
                                 suggestionPane.setVisible(false);
+                                suggestionsModel.removeAllElements();
                                 startPos = -1;
                                 mode_insert = false;
                             }
@@ -223,15 +230,15 @@ public class Completer implements DocumentListener, CaretListener {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
-				 if (startPos == 0){
+                                if (startPos == 0){
                                     source.select(start,pos);
                                 }else{
                                     source.select(start+1,pos);
                                 }
-                                
                                 source.replaceSelection(val);
                                 source.setCaretPosition(source.getSelectionEnd());
                                 suggestionPane.setVisible(false);
+                                suggestionsModel.removeAllElements();
                                 startPos = -1;
                                 mode_insert = false;
                             }
@@ -276,6 +283,7 @@ public class Completer implements DocumentListener, CaretListener {
         });
 
 
+        stdout.println(KeyStroke.getKeyStroke("control Q"));
 
         // Show Payload library on ctrl + q
         this.source.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, java.awt.event.InputEvent.CTRL_DOWN_MASK),
@@ -297,11 +305,11 @@ public class Completer implements DocumentListener, CaretListener {
                 
             }
         });
-
+    
         // Source JTextarea listener
         this.source.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e){
-                if (e.getModifiersEx() == KeyEvent.CTRL_DOWN_MASK || e.getModifiersEx() == (KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK)){
+                if (e.getModifiersEx() == KeyEvent.CTRL_DOWN_MASK || e.getModifiersEx() == (KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK)|| e.getModifiersEx() == (KeyEvent.CTRL_DOWN_MASK | MouseEvent.BUTTON1_DOWN_MASK)){
                     mode_insert = true;
                     startPos = -1;
                     pos -= 1;
@@ -331,28 +339,47 @@ public class Completer implements DocumentListener, CaretListener {
                         break;
 
                     case  KeyEvent.VK_TAB:
-                        // Pick the first payload on tab completion
-                        suggestions.setSelectedIndex(0);
-                        List<String> values = suggestions.getSelectedValuesList();
+                        // Pick the common prefix 
+                        ArrayList<String> all_values = new ArrayList<String>();
+                        for (int i = 0; i < suggestions.getModel().getSize(); i++) {
+                           all_values.add(String.valueOf(suggestions.getModel().getElementAt(i))) ;
+                        }
+                        suggestionPane.setVisible(false);
                         mode_insert = true;
 
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (startPos == 0){
-                                    source.select(start,pos);
-                                }else{
-                                   source.select(start+1,pos);
-                               }
-                                source.replaceSelection(values.get(0).toString());
-                                source.setCaretPosition(source.getSelectionEnd());
-                                suggestionPane.setVisible(false);
-                                startPos = -1;
-                                mode_insert = false;
-
-                            }
-                        });
-                        suggestionPane.setVisible(false);
+                        if (all_values.size() > 0 && startPos+1 != pos && startPos != -1 ){
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    String prefix = longestCommonPrefix(all_values); 
+                                    if (prefix.equals("")){
+                                        mode_insert = false;
+                                        suggestionPane.setVisible(true);
+                                        return;       
+                                    }
+                                 
+                                    in_completion = true;
+                                    no_caret_update = true;
+                                    if (startPos == 0){
+                                        source.select(start,pos);
+                                    }else{
+                                        source.select(start+1,pos);
+                                    }
+                                    source.replaceSelection(prefix);
+                                    no_caret_update = false;
+                                    source.setCaretPosition(source.getSelectionEnd());
+                                    if (all_values.size() == 1){
+                                        in_completion = false;
+                                        suggestionsModel.removeAllElements();
+                                        suggestionPane.setVisible(false);
+                                    }else{
+                                        suggestionPane.setVisible(true);
+                                    }
+                                    mode_insert = false;
+                                }
+                            });
+                        }
+                        
                         s.requestFocus();
                         e.consume();  
                         break;
@@ -384,6 +411,20 @@ public class Completer implements DocumentListener, CaretListener {
             }
         });
     }
+
+    private String longestCommonPrefix(List<String> values) {
+        if (values.size() == 0) return "";
+        
+        String prefix = values.get(0);
+        for (int i = 1; i < values.size(); i++) {
+            while (values.get(i).indexOf(prefix) != 0) {
+                prefix = prefix.substring(0, prefix.length() - 1);
+                if (prefix.equals("")) return "";
+            }
+        }
+        return prefix;
+    }
+
 
 
     public CompleterActionListener getActionListener() {
@@ -422,7 +463,10 @@ public class Completer implements DocumentListener, CaretListener {
         ArrayList<String> results = new ArrayList<>();
         for(String in : this.keywords) {
             if( !in.toLowerCase().equals(search.trim()) && in.toLowerCase().startsWith(search.trim()) ) {
-                
+                // don't make burp slower
+                if (results.size() == 50){
+                    break;
+                }
                 results.add(in);
             }
         }
@@ -461,7 +505,7 @@ public class Completer implements DocumentListener, CaretListener {
 
 
     private void Completions(int offset) {
-
+        
         if (mode_insert){
             return;
         }
@@ -491,7 +535,7 @@ public class Completer implements DocumentListener, CaretListener {
                 if (start == startPos){
                     break;
                 }
-                if (Character.isWhitespace(content.charAt(start))){
+                if (Character.isWhitespace(content.charAt(start)) && !in_completion){
                     startPos = start;
                     break;
                 }
@@ -508,7 +552,6 @@ public class Completer implements DocumentListener, CaretListener {
             suggestionPane.setVisible(false);
             return;
         }
-        
         // corner case for http method
         if (startPos == 0){
             start = -1;

