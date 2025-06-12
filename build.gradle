@@ -1,31 +1,69 @@
-apply plugin: 'java'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+plugins {
+    id 'java'
+}
 
 compileJava.options.encoding = 'UTF-8'
+
+group = 'burp.extensions'
+version = '2.0.0'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compile 'net.portswigger.burp.extender:burp-extender-api:1.7.22'
-    compile 'com.googlecode.json-simple:json-simple:1.1.1'
-    compile 'commons-io:commons-io:2.8.0'
+    compileOnly 'net.portswigger.burp.extensions:montoya-api:2025.4'
+    implementation 'org.yaml:snakeyaml:2.4'
+    implementation 'com.google.code.gson:gson:2.13.1' 
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
 
 jar{
-    baseName = project.name
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from {
-        (configurations.compile).collect { it.isDirectory() ? it : zipTree(it) }
-    }{
-        exclude "META-INF/*.SF"
-        exclude "META-INF/*.DSA"
-        exclude "META-INF/*.RSA"
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
 
-tasks.withType(Jar) {
-    destinationDir = file("$rootDir/releases")
+
+// Encrypt payload to avoid anti-virus alert
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
+import java.nio.file.Files
+
+def keyString = "1234567890123456" // 16 bytes
+
+tasks.register('encryptResource') {
+    def inputFile = file('src/main/resources/default-payloads.yaml')
+    def outputDir = layout.buildDirectory.dir("encryptedResources")
+    def outputFile = outputDir.map { it.file("default-payloads.enc.yaml") }
+
+    inputs.file(inputFile)
+    outputs.file(outputFile)
+
+    doLast {
+        println "Encrypting ${inputFile} to ${outputFile.get().asFile}"
+
+        byte[] keyBytes = keyString.getBytes('UTF-8')
+        SecretKeySpec key = new SecretKeySpec(keyBytes, "AES")
+
+        Cipher cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+
+        byte[] data = Files.readAllBytes(inputFile.toPath())
+        byte[] encrypted = cipher.doFinal(data)
+
+        outputFile.get().asFile.parentFile.mkdirs()
+        Files.write(outputFile.get().asFile.toPath(), encrypted)
+    }
+}
+
+processResources {
+    dependsOn encryptResource
+    from(layout.buildDirectory.dir("encryptedResources")) {
+        include "default-payloads.enc.yaml"
+        into ''
+    }
+    exclude "default-payloads.yaml"
 }
