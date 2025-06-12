@@ -1,475 +1,260 @@
 package com.hopla;
 
-import burp.*;
-import java.io.PrintWriter;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import java.util.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.apache.commons.io.IOUtils;
 
-import java.io.FileReader;
-import java.util.Iterator;
-import java.awt.BorderLayout;
+import burp.api.montoya.BurpExtension;
+import burp.api.montoya.MontoyaApi;
+import burp.api.montoya.core.Registration;
+import burp.api.montoya.extension.ExtensionUnloadingHandler;
+import burp.api.montoya.ui.contextmenu.MessageEditorHttpRequestResponse;
+import burp.api.montoya.ui.hotkey.HotKeyContext;
+import burp.api.montoya.ui.hotkey.HotKeyHandler;
+import com.hopla.IA.AIConfiguration;
 
 import javax.swing.*;
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.Frame;
-import java.awt.Dimension;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
+import java.awt.*;
 import java.awt.event.AWTEventListener;
-import java.awt.Toolkit;
-import java.awt.AWTEvent;
-import java.awt.GridLayout;
+import java.util.ArrayList;
 
-import java.awt.event.KeyListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.ItemEvent;
-import java.io.File;
+import static com.hopla.Constants.*;
+import static com.hopla.Utils.alert;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.awt.Container;
-
-public class HopLa implements IBurpExtender, IContextMenuFactory, IExtensionStateListener, AWTEventListener {
-
-    public static final String APP_NAME = "HopLa";
-    public static final double VERSION = 1.0;
-    public static final String AUTHOR = "Alexis Danizan";
-
-    public static IBurpExtenderCallbacks callbacks;
-    public static IExtensionHelpers helpers;
-    public IContextMenuInvocation invocation;
-
-    public static PrintWriter stdout;
-    public static PrintWriter stderr;
-
-    private JMenuBar burpMenuBar;
-    private JMenu hoplaMenuBar;
-
-    private JFileChooser fileChooser;
-    private String filepath;
-    private String temppath;
-
-    private ArrayList<Completer> listeners = new ArrayList<>();
-
-    private Set<String> keywordsSet =  new HashSet<String>() ;
-    private ArrayList<String> keywords = new ArrayList<>();
-    private boolean enableCompletion = true;
+public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEventListener {
+    public static MontoyaApi montoyaApi;
+    public static LocalPayloadsManager localPayloadsManager;
+    public static SearchReplaceWindow searchReplaceWindow;
+    public static AIChatPanel aiChatPanel;
+    public static AIConfiguration aiConfiguration;
+    private static String extensionName;
+    private final ArrayList<Completer> listeners = new ArrayList<>();
+    private final ArrayList<Registration> registrations = new ArrayList<Registration>();
+    public Boolean autocompletionEnabled;
+    public Boolean shortcutsEnabled;
+    public Boolean aiAutocompletionEnabled;
+    private PayloadManager payloadManager;
+    private AutoCompleteMenu autoCompleteMenu;
+    private PayloadMenu payloadMenu;
 
     @Override
-    public void registerExtenderCallbacks(final IBurpExtenderCallbacks callbacks)
-    {
+    public void initialize(MontoyaApi montoyaApi) {
+        HopLa.montoyaApi = montoyaApi;
+        HopLa.extensionName = Constants.EXTENSION_NAME;
 
-        this.callbacks = callbacks;
-        this.helpers = callbacks.getHelpers();
-        this.stdout = new PrintWriter(callbacks.getStdout(), true);
-        this.stderr = new PrintWriter(callbacks.getStderr(), true);
+        montoyaApi.extension().setName(Constants.EXTENSION_NAME);
+        montoyaApi.extension().registerUnloadingHandler(this);
 
-        callbacks.setExtensionName(this.APP_NAME);
-        callbacks.registerContextMenuFactory(this);
-        callbacks.registerExtensionStateListener(this);
+        aiAutocompletionEnabled = montoyaApi.persistence()
+                .preferences()
+                .getBoolean(PREFERENCE_IA);
 
-        // Allow only json files for config.json
-        this.fileChooser = new JFileChooser();
-        this.fileChooser.setAcceptAllFileFilterUsed(false);
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("JSON files (*.json)", "json");
-        this.fileChooser.addChoosableFileFilter(filter);
+        if (aiAutocompletionEnabled == null) {
+            aiAutocompletionEnabled = Boolean.FALSE;
+        }
+        aiConfiguration = new AIConfiguration();
 
-        this.filepath = callbacks.loadExtensionSetting(this.APP_NAME);
-        if (this.filepath == null) {
-            File extension_file = new File(callbacks.getExtensionFilename());
-            File config_file = new File(extension_file.getParentFile() + "/config.json");
-            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.json");
-            try {
-                FileWriter config_writer = new FileWriter(config_file);
-                config_writer.write( IOUtils.toString( inputStream, "UTF-8" ));
-                config_writer.close();
-                stdout.println("Default config write to file:" + config_file);
+        shortcutsEnabled = montoyaApi.persistence()
+                .preferences()
+                .getBoolean(PREFERENCE_SHORTCUTS);
 
-            } catch (IOException e) {
-                stdout.println(e.getMessage());
+        if (shortcutsEnabled == null) {
+            shortcutsEnabled = Boolean.TRUE;
+        }
+
+        autocompletionEnabled = montoyaApi.persistence()
+                .preferences()
+                .getBoolean(PREFERENCE_AUTOCOMPLETION);
+
+        if (autocompletionEnabled == null) {
+            autocompletionEnabled = Boolean.TRUE;
+        }
+
+        montoyaApi.logging().logToOutput("AI Autocompletion enabled: " + aiAutocompletionEnabled);
+        montoyaApi.logging().logToOutput("Shortcuts enabled: " + shortcutsEnabled);
+        montoyaApi.logging().logToOutput("Autocompletion enabled: " + autocompletionEnabled);
+
+        localPayloadsManager = new LocalPayloadsManager(montoyaApi);
+        payloadManager = new PayloadManager(montoyaApi, localPayloadsManager);
+        autoCompleteMenu = new AutoCompleteMenu(this, montoyaApi, payloadManager);
+        searchReplaceWindow = new SearchReplaceWindow(montoyaApi);
+        payloadMenu = new PayloadMenu(payloadManager, montoyaApi);
+        aiChatPanel = new AIChatPanel(aiConfiguration);
+        montoyaApi.userInterface().registerContextMenuItemsProvider(new ContextMenu(montoyaApi, payloadManager));
+        new MenuBar(montoyaApi, this, payloadManager);
+
+
+        if (shortcutsEnabled) {
+            enableShortcuts();
+        }
+        if (autocompletionEnabled) {
+            enableAutocompletion();
+        }
+
+        if (Constants.DEBUG) {
+            montoyaApi.logging().logToOutput("Debug enabled");
+        }
+        montoyaApi.logging().logToOutput(Constants.INIT_MESSAGE);
+
+    }
+
+    public void enableAutocompletion() {
+        montoyaApi.persistence()
+                .preferences().setBoolean(PREFERENCE_AUTOCOMPLETION, true);
+        autocompletionEnabled = true;
+        Toolkit.getDefaultToolkit().addAWTEventListener(this, AWTEvent.KEY_EVENT_MASK | AWTEvent.MOUSE_EVENT_MASK);
+    }
+
+    public void disableAutocompletion() {
+        montoyaApi.persistence()
+                .preferences().setBoolean(PREFERENCE_AUTOCOMPLETION, false);
+        autocompletionEnabled = false;
+        removeListeners();
+    }
+
+    public void enableShortcuts() {
+        montoyaApi.persistence()
+                .preferences().setBoolean(PREFERENCE_SHORTCUTS, true);
+        shortcutsEnabled = true;
+        registerShortcuts();
+    }
+
+    public void disableShortcuts() {
+        montoyaApi.persistence()
+                .preferences().setBoolean(PREFERENCE_SHORTCUTS, false);
+        shortcutsEnabled = false;
+        for (Registration registration : registrations) {
+            registration.deregister();
+        }
+    }
+
+
+    @Override
+    public void eventDispatched(AWTEvent event) {
+        if (event.getSource() instanceof JTextArea source) {
+            if (source.getClientProperty("hasListener") != null && ((Boolean) source.getClientProperty("hasListener"))) {
+                return;
             }
 
-        }
-        stdout.println("Current config file:" + this.filepath);
-
-        // Add our custom configuration menu bar to burp
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    
-                    burpMenuBar = getBurpFrame().getJMenuBar();
-                    hoplaMenuBar = new JMenu("HopLa");
-                    JMenuItem PayloadFileMenu = new JMenuItem("Payload file");
-                    PayloadFileMenu.addActionListener(new ActionListener() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            EditPayloadFile();
-                        }
-                    });
-
-                    JCheckBoxMenuItem enableAutoCompletion = new JCheckBoxMenuItem("AutoCompletion",enableCompletion);
-                    enableAutoCompletion.addItemListener(new ItemListener() {
-                        public void itemStateChanged(ItemEvent e) {
-                            if (enableAutoCompletion.getState()) {
-                                enableCompletion = true;
-                                stdout.println("Completion enable");
-
-                            } else {
-                                enableCompletion = false;
-                                stdout.println("Completion disable");
-                                for(Completer listener : listeners) {
-                                    listener.detachFromSource();
-                                    listener.getSource().getDocument().removeDocumentListener(listener);
-                                    listener.getSource().putClientProperty("hasListener",false);
-                                }
-                                listeners = new ArrayList<>();
-                            }
-                        }
-                    });
-
-                    hoplaMenuBar.add(PayloadFileMenu);
-                    hoplaMenuBar.add(enableAutoCompletion);
-                    burpMenuBar.add(hoplaMenuBar);
-                    stdout.println("Menubar loaded");
-                }catch (Exception e){
-                    stderr.println(e.getMessage());
-                    stderr.println("Failed to start HopLa");
+            // enable to debug awt frame
+            if (AWT_DEBUG) {
+                Container comp = source;
+                while (comp != null) {
+                    montoyaApi.logging().logToOutput("Ancestor: " + comp.getClass().getName() + " name: " + comp.getName());
+                    comp = comp.getParent();
                 }
             }
-        });
 
-        Toolkit.getDefaultToolkit().addAWTEventListener(this,AWTEvent.KEY_EVENT_MASK | AWTEvent.MOUSE_EVENT_MASK);
-        this.buildMenu(this.getActionListener());
-        this.stdout.println("HopLa initialized.\nHappy hacking !\nAlexis Danizan from Synacktiv\n--------------");
+            Container is_editor = SwingUtilities.getAncestorNamed("messageEditor", source);
 
+            if (is_editor == null) {
+                return;
+            }
+            if (AWT_DEBUG) {
+                montoyaApi.logging().logToOutput("Message editor detected: " + source.getName());
+            }
+            if (!source.isEditable()) {
+                return;
+            }
+            if (Constants.DEBUG) {
+                montoyaApi.logging().logToOutput("Message editor is editable: " + source.getName());
+            }
+            if (autocompletionEnabled) {
+                Completer t = new Completer(montoyaApi, source, autoCompleteMenu);
+                source.putClientProperty("hasListener", true);
+                this.listeners.add(t);
+                if (Constants.DEBUG) {
+                    montoyaApi.logging().logToOutput("Add completer: " + source.getName());
+                }
+            }
+        }
+    }
+
+
+    private void removeListeners() {
+        Toolkit.getDefaultToolkit().removeAWTEventListener(this);
+
+        // Remove all listeners on unload
+        for (Completer listener : this.listeners) {
+            listener.detach();
+            listener.getSource().putClientProperty("hasListener", false);
+        }
     }
 
     @Override
     public void extensionUnloaded() {
-        // Remove menu on unload
-        burpMenuBar.remove(hoplaMenuBar);
-        burpMenuBar.repaint();
-
-        Toolkit.getDefaultToolkit().removeAWTEventListener(this);
-        // Remove all listeners on unload
-        for(Completer listener : this.listeners) {
-            listener.detachFromSource();
-            listener.getSource().getDocument().removeDocumentListener(listener);
-            listener.getSource().putClientProperty("hasListener",false);
-        }
-
-        this.stdout.println("HopLa unloaded");
+        removeListeners();
+        autoCompleteMenu.dispose();
+        payloadMenu.dispose();
+        localPayloadsManager.dispose();
+        searchReplaceWindow.dispose();
+        aiChatPanel.dispose();
+        aiConfiguration.dispose();
+        montoyaApi.logging().logToOutput(extensionName + " unloaded");
     }
 
-    /**
-     * This hooks keyboard events for the entire application. Only textareas are considered. Practically, this includes
-     * Repeater, Intruder, and any extension which uses JTextArea.
-     * @param event keyboard event
-     */
-    @Override
-    public void eventDispatched(AWTEvent event) {
-        if(event.getSource() instanceof JTextArea) {
-            JTextArea source = ((JTextArea)event.getSource());
-	    // hooks only message editor and intruder
+    private void registerShortcuts() {
 
-            Container is_editor = SwingUtilities.getAncestorNamed("requestResponseViewer",source);
-            //Container is_repeater = SwingUtilities.getAncestorNamed("httpRequestMessageAnalyser",source);
-            Container is_intruder = SwingUtilities.getAncestorNamed("intruderControlPanelTabBar",source);
-
-            if (is_intruder == null && is_editor == null){
-                return;
-            }
-	    if (!source.isEditable()){
-                return;
-            }
-		
-            if(source.getClientProperty("hasListener") ==  null || !((Boolean) source.getClientProperty("hasListener"))) {
-                if (enableCompletion){
-                    Completer t = new Completer(source, keywords, this.stdout, this.stderr);
-                    this.createPayloadMenuFrame(t);
-                    source.getDocument().addDocumentListener(t);
-                    source.putClientProperty("hasListener",true);
-                    this.listeners.add(t);
-                    stdout.println("New completer added");
-                }
-            }
+        if (montoyaApi.burpSuite().version().buildNumber() < 20250300000037651L) {
+            alert("Register Hotkey not supported with this Burp Version");
+            return;
         }
-    }
 
-    public void createPayloadMenuFrame(Completer t){
-        
-        JFrame payloadMenu = new JFrame("Payload Menu");
-        payloadMenu.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        for (PayloadDefinition.Category category : payloadManager.getPayloads().categories) {
+            this.recursiveRegisterShortcuts(category);
+        }
 
-        payloadMenu.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                payloadMenu.setVisible(false);
-                payloadMenu.dispose();
-            }
+        this.registerShortcut(payloadManager.getPayloads().shortcut_payload_menu, "Payload Menu", event -> {
+            MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
+            payloadMenu.show(messageEditor, event.inputEvent());
         });
 
-        payloadMenu.setLayout(new BorderLayout());
-        JMenuBar menuBar = new JMenuBar();
-        menuBar.setLayout(new GridLayout(0,1));
-
-        for (JMenuItem menu: this.buildMenu(t.getActionListener()) ){
-            menuBar.add(menu); 
-        }
-        payloadMenu.setResizable(false);
-        payloadMenu.add(menuBar);
-        payloadMenu.pack();
-        payloadMenu.setLocationRelativeTo(null);
-        payloadMenu.setVisible(false);
-        t.payloadMenuFrame = payloadMenu;
-
-
-        menuBar.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, java.awt.event.InputEvent.CTRL_DOWN_MASK),
-                    "showPayloads");
-
-        menuBar.getActionMap().put("showPayloads", new AbstractAction() {
-            public void actionPerformed(ActionEvent e) {
-                payloadMenu.setVisible(false);
-            }
-        });
-        stdout.println("Payload menu fram built");
-    }
-
-
-    public void EditPayloadFile() {
-        
-        temppath = null;
-        JPanel pane = new JPanel(new GridLayout(2,2));
-
-        JLabel nameLabel = new JLabel("Payload file: ");
-        pane.add(nameLabel);
-
-        JLabel fileLabel = new JLabel(this.filepath);
-        pane.add(fileLabel);
-
-        JButton reloadButton = new JButton("Reload");
-        pane.add(reloadButton);
-
-        JButton fileButton = new JButton("Browse");
-        pane.add(fileButton);
-
-        fileButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                if (fileChooser.showOpenDialog(pane) == JFileChooser.APPROVE_OPTION) {
-                    temppath = fileChooser.getSelectedFile().getAbsolutePath();
-                    fileLabel.setText(temppath);
-                }
-            }
+        this.registerShortcut(payloadManager.getPayloads().shortcut_search_and_replace, "Search Replace", event -> {
+            MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
+            searchReplaceWindow.attach(messageEditor, event.inputEvent());
         });
 
-
-        reloadButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                for(Completer t : listeners) {
-                    createPayloadMenuFrame(t);
-                    t.keywords = keywords;
-                }
-                temppath = fileLabel.getText();
-            }
+        this.registerShortcut(payloadManager.getPayloads().shortcut_collaborator, "Collaborator", event -> {
+            MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
+            Utils.InsertCollaboratorPayload(montoyaApi, messageEditor, event.inputEvent());
+        });
+        this.registerShortcut(payloadManager.getPayloads().shortcut_ia_chat, "AI chat", event -> {
+            aiChatPanel.show();
         });
 
-        int result = JOptionPane.showConfirmDialog(null, pane, 
-               "Payload file path", JOptionPane.OK_CANCEL_OPTION);
-        
-        if (result == JOptionPane.OK_OPTION) {
-            String oldpath = this.filepath;
-            this.filepath = temppath;
-            ArrayList<JMenuItem> items = buildMenu(getActionListener());
-            if (items != null && temppath != null){
-                callbacks.saveExtensionSetting(APP_NAME, temppath);
-               
-            }else {
-                this.filepath = oldpath;
-            }
-        }
-        stdout.println("Filepath change to: " + this.filepath);
-
     }
 
-    private static JFrame getBurpFrame() {
-        for (Frame f : Frame.getFrames()) {
-            if (f.isVisible() && f.getTitle().startsWith(("Burp Suite"))) {
-                return (JFrame) f;
-            }
-        }
-        return null;
-    }
-
-    public CompleterActionListener getActionListener() {
-        return new CompleterActionListener() {
-            public void actionPerformed(ActionEvent event) {
-                String payload = event.getActionCommand();
-                if(this.values.get(payload).size() > 0){
-                    payload = this.prompt(payload, this.values.get(payload));
+    private void recursiveRegisterShortcuts(PayloadDefinition.Category category) {
+        if (category.payloads != null) {
+            for (PayloadDefinition.Payload payload : category.payloads) {
+                if (payload.shortcut == null || payload.shortcut.isBlank()) {
+                    continue;
                 }
-                try{                    
-                    int[] bounds = invocation.getSelectionBounds();
-                    byte[] message = invocation.getSelectedMessages()[0].getRequest();
-                    
-                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            
-                    outputStream.write(Arrays.copyOfRange(message, 0, bounds[0]));
-                    outputStream.write(helpers.stringToBytes(payload));
-                    outputStream.write(Arrays.copyOfRange(message,bounds[0], bounds[1]));
-                    outputStream.write(Arrays.copyOfRange(message, bounds[1],message.length));
-                    outputStream.flush();
-                    invocation.getSelectedMessages()[0].setRequest(outputStream.toByteArray());
-                
-                }
-                catch (Exception exc)
-                {
-                    stderr.println(exc.getMessage());
-                }
-            }
-        };
-    }
-    
-
-    private JMenu recursionMenu(String name, JSONArray values, CompleterActionListener action ){
-        JMenu menu = new JMenu(name);
-        MenuScroller.setScrollerFor(menu,30);
-        Iterator<JSONObject> iterator = values.iterator();
-        while (iterator.hasNext()) {
-            JSONObject obj = iterator.next();
-            String child_name = (String) obj.get("name");
-
-            JSONArray child_values = (JSONArray) obj.get("values");
-            if (child_values != null){
-                menu.add(this.recursionMenu(child_name, child_values, action));
-            }
-
-            String child_value = (String) obj.get("value");
-            if (child_value != null){
-                this.keywordsSet.add(child_value);
-                String item_name = child_value;
-                if (child_name.length() > 0){
-                    item_name = child_name + ": " + child_value;
-                }
-
-                if (item_name.length() > 80){
-                    item_name = item_name.substring(0,80);
-                }
-
-                JMenuItem item = new JMenuItem(item_name);
-                item.setActionCommand(child_value);
-
-                JSONArray prompt_values = (JSONArray) obj.get("prompt");
-                ArrayList<String> prompt = new ArrayList<String>();  
-                if (prompt_values != null){
-                    for (Object c : prompt_values) {
-                        prompt.add((String) c);
+                this.registerShortcut(payload.shortcut, category.name + " " + payload.name, event -> {
+                    if (event.messageEditorRequestResponse().isEmpty()) {
+                        return;
                     }
-                    
-                }
-                action.add(child_value,prompt);
-
-
-                item.addActionListener(action);
-                menu.add(item);
+                    MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
+                    Utils.insertPayload(messageEditor, payload.value, event.inputEvent());
+                });
             }
         }
-        return menu;
-    }
-    public ArrayList<JMenuItem> buildMenu(CompleterActionListener action){
-        ArrayList<JMenuItem> items = new ArrayList<JMenuItem>();
-        try{
-            this.keywordsSet =  new HashSet<String>();
-            String content = "";
-            if (this.filepath == null) {
-                InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.json");
-                content = IOUtils.toString( inputStream, "UTF-8" );
-            } else {
-                content = new String(Files.readAllBytes(Paths.get(this.filepath)), StandardCharsets.UTF_8);
+
+        if (category.categories != null) {
+            for (PayloadDefinition.Category sub : category.categories) {
+                this.recursiveRegisterShortcuts(sub);
             }
-
-            JSONParser parser = new JSONParser();
-            Object obj = parser.parse(content);
-            JSONObject jsonObject = (JSONObject) obj;
-
-            JSONArray categories = (JSONArray) jsonObject.get("categories");
-           
-            Iterator<JSONObject> iterator = categories.iterator();
-            while (iterator.hasNext()) {
-                JSONObject categorie = iterator.next();
-                String categorie_name = (String) categorie.get("name");
-                JSONArray categorie_values = (JSONArray) categorie.get("values");
-                items.add(this.recursionMenu(categorie_name, categorie_values, action));
-            }
-
-
-            JSONArray keywords = (JSONArray) jsonObject.get("keywords");
-            Iterator<JSONObject> iterator_keywords = keywords.iterator();
-            while (iterator_keywords.hasNext()) {
-                JSONObject keyword = iterator_keywords.next();
-                JSONArray keywords_values = (JSONArray) keyword.get("values");
-                if (keywords_values != null){
-                    for (Object c : keywords_values) {
-                        this.keywordsSet.add((String) c);
-                    }
-                }
-            }
-
-
-            this.keywords = new ArrayList<String>();
-            this.keywords.addAll(this.keywordsSet);
-
-        }catch (Exception e) {
-			this.stderr.println(e.getMessage());
-            this.alert("Invalid payload file, sry bro");
-            return null;
-		}
-        stdout.println("Menu built");
-        return items;
-    }
-
-    @Override
-	public List<JMenuItem> createMenuItems(IContextMenuInvocation invocation) {
-        ArrayList<JMenuItem> items = new ArrayList<JMenuItem>();
-        this.invocation = invocation;
-        switch (invocation.getInvocationContext()) {
-            case IContextMenuInvocation.CONTEXT_INTRUDER_PAYLOAD_POSITIONS:
-            case IContextMenuInvocation.CONTEXT_MESSAGE_EDITOR_REQUEST:
-            case IContextMenuInvocation.CONTEXT_MESSAGE_VIEWER_REQUEST:
-                JMenu base_menu = new JMenu("HopLa");
-                items.add(base_menu);
-                for (JMenuItem menu: this.buildMenu(this.getActionListener())){
-                    base_menu.add(menu);    
-                }
-                break;
         }
-        
-        return items;
-	}
-
-    public void alert(String message) {
-        JOptionPane.showMessageDialog(null, message,"HopLa Error",JOptionPane.ERROR_MESSAGE);
-        HopLa.callbacks.issueAlert(message);
     }
 
+
+    private void registerShortcut(String shortcut, String message, HotKeyHandler handler) {
+        String normalizedShortcut = Utils.normalizeShortcut(shortcut);
+        Registration registration = montoyaApi.userInterface().registerHotKeyHandler(HotKeyContext.HTTP_MESSAGE_EDITOR, normalizedShortcut, handler);
+
+        if (registration.isRegistered()) {
+            montoyaApi.logging().logToOutput("Successfully registered hotkey handler: " + normalizedShortcut + " - " + message);
+            registrations.add(registration);
+        } else {
+            montoyaApi.logging().logToError("Failed to register hotkey handler: " + normalizedShortcut + " - " + message);
+            alert("Failed to register hotkey handler: " + normalizedShortcut);
+        }
+    }
 }
-
