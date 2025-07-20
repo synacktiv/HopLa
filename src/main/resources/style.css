@@ -1,0 +1,47 @@
+body * {
+    font-family: monospace;
+    font-size: 12px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin: 0
+}
+
+
+.user, .assistant {
+    margin-bottom: 10px;
+}
+
+.user .role {
+    color: #3b5998;
+    font-weight: bold;
+}
+
+.assistant .role {
+    color: #8b9dc3;
+    font-weight: bold;
+}
+
+* {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+pre {
+    color: #DC2525;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+p {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+ul {
+    margin-left: 16px;
+}
+
+a {
+    color: #1a73e8;
+    text-decoration: none;
+}

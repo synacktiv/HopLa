@@ -8,7 +8,9 @@ import burp.api.montoya.extension.ExtensionUnloadingHandler;
 import burp.api.montoya.ui.contextmenu.MessageEditorHttpRequestResponse;
 import burp.api.montoya.ui.hotkey.HotKeyContext;
 import burp.api.montoya.ui.hotkey.HotKeyHandler;
-import com.hopla.IA.AIConfiguration;
+import com.hopla.ai.AIChats;
+import com.hopla.ai.AIConfiguration;
+import com.hopla.ai.AIQuickAction;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 
 import static com.hopla.Constants.*;
 import static com.hopla.Utils.alert;
+import static com.hopla.Utils.getSelectedText;
 
 public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEventListener {
     public static MontoyaApi montoyaApi;
@@ -24,6 +27,8 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
     public static SearchReplaceWindow searchReplaceWindow;
     public static AIChatPanel aiChatPanel;
     public static AIConfiguration aiConfiguration;
+    public static AIChats aiChats;
+    public static AIQuickAction aiQuickAction;
     private static String extensionName;
     private final ArrayList<Completer> listeners = new ArrayList<>();
     private final ArrayList<Registration> registrations = new ArrayList<Registration>();
@@ -42,14 +47,18 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
         montoyaApi.extension().setName(Constants.EXTENSION_NAME);
         montoyaApi.extension().registerUnloadingHandler(this);
 
+        aiConfiguration = new AIConfiguration(montoyaApi);
+        aiChats = new AIChats();
+
+        aiQuickAction = new AIQuickAction(aiConfiguration);
+
         aiAutocompletionEnabled = montoyaApi.persistence()
                 .preferences()
-                .getBoolean(PREFERENCE_IA);
+                .getBoolean(PREFERENCE_AI);
 
         if (aiAutocompletionEnabled == null) {
             aiAutocompletionEnabled = Boolean.FALSE;
         }
-        aiConfiguration = new AIConfiguration();
 
         shortcutsEnabled = montoyaApi.persistence()
                 .preferences()
@@ -67,18 +76,19 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
             autocompletionEnabled = Boolean.TRUE;
         }
 
+        montoyaApi.logging().logToOutput("AI configured: " + aiConfiguration.isAIConfigured);
         montoyaApi.logging().logToOutput("AI Autocompletion enabled: " + aiAutocompletionEnabled);
         montoyaApi.logging().logToOutput("Shortcuts enabled: " + shortcutsEnabled);
         montoyaApi.logging().logToOutput("Autocompletion enabled: " + autocompletionEnabled);
 
         localPayloadsManager = new LocalPayloadsManager(montoyaApi);
         payloadManager = new PayloadManager(montoyaApi, localPayloadsManager);
-        autoCompleteMenu = new AutoCompleteMenu(this, montoyaApi, payloadManager);
+        autoCompleteMenu = new AutoCompleteMenu(this, montoyaApi, payloadManager, aiConfiguration);
         searchReplaceWindow = new SearchReplaceWindow(montoyaApi);
         payloadMenu = new PayloadMenu(payloadManager, montoyaApi);
-        aiChatPanel = new AIChatPanel(aiConfiguration);
+        aiChatPanel = new AIChatPanel(aiConfiguration, aiChats);
         montoyaApi.userInterface().registerContextMenuItemsProvider(new ContextMenu(montoyaApi, payloadManager));
-        new MenuBar(montoyaApi, this, payloadManager);
+        new MenuBar(montoyaApi, this, payloadManager, aiConfiguration);
 
 
         if (shortcutsEnabled) {
@@ -120,9 +130,14 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
         montoyaApi.persistence()
                 .preferences().setBoolean(PREFERENCE_SHORTCUTS, false);
         shortcutsEnabled = false;
+        unregisterShortcuts();
+    }
+
+    private void unregisterShortcuts() {
         for (Registration registration : registrations) {
             registration.deregister();
         }
+        registrations.clear();
     }
 
 
@@ -186,7 +201,8 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
         localPayloadsManager.dispose();
         searchReplaceWindow.dispose();
         aiChatPanel.dispose();
-        aiConfiguration.dispose();
+        aiQuickAction.dispose();
+        unregisterShortcuts();
         montoyaApi.logging().logToOutput(extensionName + " unloaded");
     }
 
@@ -208,16 +224,32 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
 
         this.registerShortcut(payloadManager.getPayloads().shortcut_search_and_replace, "Search Replace", event -> {
             MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
-            searchReplaceWindow.attach(messageEditor, event.inputEvent());
+            searchReplaceWindow.attach(messageEditor, event.inputEvent(), getSelectedText(messageEditor));
+        });
+
+        this.registerShortcut(payloadManager.getPayloads().shortcut_add_custom_keyword, "Add custom keyword", event -> {
+            MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
+            HopLa.localPayloadsManager.add(getSelectedText(messageEditor));
         });
 
         this.registerShortcut(payloadManager.getPayloads().shortcut_collaborator, "Collaborator", event -> {
             MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
             Utils.InsertCollaboratorPayload(montoyaApi, messageEditor, event.inputEvent());
         });
-        this.registerShortcut(payloadManager.getPayloads().shortcut_ia_chat, "AI chat", event -> {
-            aiChatPanel.show();
-        });
+
+        if (aiConfiguration.isAIConfigured) {
+            this.registerShortcut(aiConfiguration.config.shortcut_ai_chat, "AI chat", event -> {
+                MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
+                aiChatPanel.show(messageEditor, event.inputEvent(), getSelectedText(messageEditor));
+            });
+            this.registerShortcut(aiConfiguration.config.shortcut_quick_action, "AI Quick action", event -> {
+                MessageEditorHttpRequestResponse messageEditor = event.messageEditorRequestResponse().get();
+                aiQuickAction.show(messageEditor, event.inputEvent(), getSelectedText(messageEditor));
+            });
+
+
+        }
+
 
     }
 

@@ -9,9 +9,12 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
 
-import static java.awt.SystemColor.menu;
+import static com.hopla.Utils.generateJWindow;
 
 public class PayloadMenu {
+    private static final int MARGIN_PAYLOAD_MENU = 20;
+    private static final int PAYLOAD_MENU_WIDTH = 250;
+    private static final int PAYLOAD_MENU_HEIGHT = 300;
     private final PayloadManager payloadManager;
     private final CommonMenu commonMenu;
     private JWindow frame;
@@ -27,11 +30,9 @@ public class PayloadMenu {
             frame = null;
             return;
         }
-        frame = new JWindow();
-        frame.getRootPane().putClientProperty("windowTitle", "");
-        frame.setName("");
-        frame.setMinimumSize(new Dimension(200, 150));
-        frame.setAlwaysOnTop(true);
+
+        frame = generateJWindow();
+        frame.setMinimumSize(new Dimension(PAYLOAD_MENU_WIDTH, PAYLOAD_MENU_HEIGHT));
 
         JMenuBar menuBar = new JMenuBar();
 
@@ -42,19 +43,25 @@ public class PayloadMenu {
         PayloadDefinition payloads = payloadManager.getPayloads();
         for (Component c : payloads.buildMenu((payload) -> {
             Utils.insertPayload(messageEditor, payload.value, event);
-            frame.dispose();
+            if (frame != null) {
+                frame.dispose();
+            }
         })) {
             menuBar.add(c);
         }
 
         JMenu customKeywordsMenu = HopLa.localPayloadsManager.buildMenu((payload) -> {
             Utils.insertPayload(messageEditor, payload, event);
-            frame.dispose();
+            if (frame != null) {
+                frame.dispose();
+            }
         });
         menuBar.add(customKeywordsMenu);
 
         for (Component c : this.commonMenu.buildMenu(messageEditor, event, () -> {
-            frame.dispose();
+            if (frame != null) {
+                frame.dispose();
+            }
         })) {
             menuBar.add(c);
         }
@@ -66,16 +73,20 @@ public class PayloadMenu {
 
             @Override
             public void focusLost(FocusEvent e) {
-                frame.dispose();
+                if (frame != null) {
+                    frame.dispose();
+                }
             }
         });
 
+        frame.pack();
+
         Point mousePos = MouseInfo.getPointerInfo().getLocation();
-        mousePos.x -= 50;
-        mousePos.y -= 50;
+        mousePos.x -= MARGIN_PAYLOAD_MENU;
+        mousePos.y -= frame.getHeight() / 2;
 
         frame.setLocation(mousePos);
-        frame.pack();
+
         frame.setVisible(true);
 
 

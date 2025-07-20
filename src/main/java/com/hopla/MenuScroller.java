@@ -30,7 +30,6 @@ public class MenuScroller {
     private final MenuScrollListener menuListener = new MenuScrollListener();
     private final MenuScrollItem upItem;
     private final MenuScrollItem downItem;
-    //private JMenu menu;
     private JPopupMenu menu;
     private Component[] menuItems;
     private int scrollCount;

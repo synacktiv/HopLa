@@ -12,9 +12,9 @@ public class PayloadDefinition {
     public List<Category> categories;
     public List<KeywordCategory> keywords;
     public String shortcut_search_and_replace;
+    public String shortcut_add_custom_keyword;
     public String shortcut_payload_menu;
     public String shortcut_collaborator;
-    public String shortcut_ia_chat;
 
     public Boolean isEmpty() {
         return this.categories == null || this.categories.isEmpty();

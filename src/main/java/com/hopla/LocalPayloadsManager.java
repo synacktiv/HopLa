@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static com.hopla.AutoCompleteMenu.CUSTOM_KEYWORD_SEPARATOR;
 import static com.hopla.Constants.PREFERENCE_LOCAL_DICT;
 
 public class LocalPayloadsManager {
@@ -30,7 +31,7 @@ public class LocalPayloadsManager {
         Set<String> concatenatedSet = new HashSet<>();
 
         for (Map.Entry<String, String> entry : localPayloads.entrySet()) {
-            String combined = entry.getKey() + " [CUSTOM]-> " + entry.getValue();
+            String combined = entry.getKey() + CUSTOM_KEYWORD_SEPARATOR + entry.getValue();
             concatenatedSet.add(combined);
             concatenatedSet.add(entry.getValue());
         }

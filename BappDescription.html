@@ -1,1 +1,43 @@
-<p> HopLa adds autocompletion support and useful payloads in Burp Suite to make your intrusion easier.</p>
+<p>HopLa extension enhances Burp Suite with intelligent autocompletion and built-in payloads to simplify intrusion testing.
+    It supports integration with AI providers like Ollama, OpenAI, and Gemini to offer advanced features such as chat and
+    content generation/transformation. You can also add your own payloads to tailor it to your needs!
+</p>
+
+<h2>Features</h2>
+<ul>
+    <li>Integrate AI-powered autocompletion (Copilot style)</li>
+    <li>Enable AI-based chat for interaction and guidance</li>
+    <li>Use AI instructions to quickly transform HTTP requests</li>
+    <li>Copy formatted requests and responses for easy reporting</li>
+    <li>Search and replace in Repeater</li>
+    <li>Access a one-click payload insertion menu</li>
+    <li>Insert Burp Collaborator domains dynamically</li>
+    <li>Assign keyboard shortcuts to specific payloads</li>
+    <li>Add custom keywords on the fly during testing</li>
+</ul>
+
+<h2>Basic usage</h2>
+
+<p>By default, HopLa comes with a built-in set of payloads. You can extend them by loading your own custom YAML file via the top menu.
+(See the <a href="https://github.com/synacktiv/HopLa/blob/main/src/main/resources/default-payloads.yaml">Default payloads file</a> for reference.)</p>
+
+<p>AI providers can be configured by importing your YAML configuration (see <a href="https://github.com/synacktiv/HopLa/">Configure AI providers</a>).
+    HopLa supports multiple AI providers (OpenAI, Gemini, Ollama), but AI-powered autocompletion is only available with Ollama.
+</p>
+
+<p>Several keyboard shortcuts are predefined by default and can be customized through configuration files.</p>
+<ul>
+    <li><strong><code>Ctrl+Q</code></strong> - Open the <strong>Payload Library</strong> menu</li>
+    <li><strong><code>Ctrl+J</code></strong> - Launch the <strong>AI Chat</strong></li>
+    <li><strong><code>Ctrl+Alt+O</code></strong> - Open the <strong>Quick Actions</strong> menu</li>
+    <li><strong><code>Ctrl+L</code></strong> - Open the <strong>Search & Replace</strong> menu</li>
+    <li><strong><code>Ctrl+M</code></strong> - Insert a <strong>Burp Collaborator</strong> payload</li>
+    <li><strong><code>Ctrl+Alt+J</code></strong> - Open the <strong>Custom Keywords Manager</strong></li>
+</ul>
+
+<p>If you're using <strong>i3</strong>, add the following line to your <strong>$HOME/.config/i3/config</strong> to enable floating mode for the frame:</p>
+<pre><code>
+    for_window [class=".*burp-StartBurp.*" title="^ $"] floating enable
+</code></pre>
+
+<p>For more information, please refer to the documentation at <a href="https://github.com/synacktiv/HopLa">GitHub HopLa</a>.</p>

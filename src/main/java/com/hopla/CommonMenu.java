@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.hopla.Utils.alert;
+import static com.hopla.Utils.getSelectedText;
 
 public class CommonMenu {
     private final MontoyaApi api;
@@ -26,31 +27,19 @@ public class CommonMenu {
     public List<Component> buildMenu(MessageEditorHttpRequestResponse messageEditor, InputEvent event, Runnable actionHandler) {
         List<Component> items = new ArrayList<>();
 
-        JMenu customKeywordMenu = new JMenu("Custom Keyword manager");
-        items.add(customKeywordMenu);
+        JMenu customKeywordsMenu = new JMenu("Custom Keywords manager");
+        items.add(customKeywordsMenu);
 
         JMenuItem addCustomKeywordMenu = new JMenuItem("Add keyword");
-        customKeywordMenu.add(addCustomKeywordMenu);
+        customKeywordsMenu.add(addCustomKeywordMenu);
         addCustomKeywordMenu.addActionListener(e -> {
-            String input = "";
-            if (messageEditor.selectionOffsets().isPresent()) {
-                var selection = messageEditor.selectionOffsets().get();
-                int start = selection.startIndexInclusive();
-                int end = selection.endIndexExclusive();
-                String data = "";
-                if (messageEditor.selectionContext() == SelectionContext.REQUEST) {
-                    data = messageEditor.requestResponse().request().toString();
-                } else {
-                    data = messageEditor.requestResponse().response().toString();
-                }
-                input = data.substring(start, end);
-            }
+            String input = getSelectedText(messageEditor);
             HopLa.localPayloadsManager.add(input);
             actionHandler.run();
         });
 
         JMenuItem manageCustomKeywordMenu = new JMenuItem("Manage keywords");
-        customKeywordMenu.add(manageCustomKeywordMenu);
+        customKeywordsMenu.add(manageCustomKeywordMenu);
         manageCustomKeywordMenu.addActionListener(e -> {
             HopLa.localPayloadsManager.manage();
             actionHandler.run();
@@ -91,17 +80,28 @@ public class CommonMenu {
         searchReplaceMenu.setHorizontalTextPosition(SwingConstants.LEFT);
         items.add(searchReplaceMenu);
         searchReplaceMenu.addActionListener(e -> {
-            HopLa.searchReplaceWindow.attach(messageEditor, event);
+            String input = getSelectedText(messageEditor);
+            HopLa.searchReplaceWindow.attach(messageEditor, event, input);
             actionHandler.run();
         });
 
         items.add(addCollaboratorMenu);
 
-        JMenuItem askAIMenu = new JMenuItem("Ask AI");
+        JMenuItem askAIMenu = new JMenuItem("AI Chat");
         askAIMenu.setHorizontalTextPosition(SwingConstants.LEFT);
         items.add(askAIMenu);
         askAIMenu.addActionListener(e -> {
-            HopLa.aiChatPanel.show();
+            String input = getSelectedText(messageEditor);
+            HopLa.aiChatPanel.show(messageEditor, event, input);
+            actionHandler.run();
+        });
+
+        JMenuItem aiQuickActionMenu = new JMenuItem("AI Quick Actions");
+        aiQuickActionMenu.setHorizontalTextPosition(SwingConstants.LEFT);
+        items.add(aiQuickActionMenu);
+        aiQuickActionMenu.addActionListener(e -> {
+            String input = getSelectedText(messageEditor);
+            HopLa.aiQuickAction.show(messageEditor, event, input);
             actionHandler.run();
         });
 

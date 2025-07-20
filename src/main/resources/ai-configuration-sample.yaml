@@ -1,0 +1,95 @@
+shortcut_ai_chat: Ctrl+J
+shortcut_quick_action: Ctrl+Alt+O
+#autocompletion_min_chars: 1 # Minimum input length for AI-powered autocompletion (default: 1)
+
+providers:
+  OPENAI:
+    enabled: true
+    chat_model: gpt-4.1
+    chat_endpoint: https://api.openai.com/v1/chat/completions
+    #chat_model_system_prompt: REPLACE_ME
+    quick_action_model: gpt-4.1
+    #quick_action_system_prompt: REPLACE_ME
+    quick_action_endpoint: https://api.openai.com/v1/chat/completions
+    headers:
+      Authorization: "Bearer REPLACE_ME"
+    proxy:
+      enabled: true
+      host: 127.0.0.1
+      port: 5555
+      username: user123
+      password: pass123
+      type: SOCKS # SOCKS or HTTP
+  GEMINI:
+    enabled: true
+    chat_model: gemini-2.0-flash
+    chat_endpoint: https://generativelanguage.googleapis.com/v1beta/models/@model:streamGenerateContent?alt=sse&key=@key #HopLa replace @key with api_key value
+    #chat_model_system_prompt: REPLACE_ME
+    quick_action_endpoint: https://generativelanguage.googleapis.com/v1beta/models/@model:streamGenerateContent?alt=sse&key=@key #HopLa replace @key with api_key value
+    #quick_action_system_prompt: REPLACE_ME
+    api_key: REPLACE_ME
+    proxy:
+      enabled: true
+      host: 127.0.0.1
+      port: 5555
+      username: user123
+      password: pass123
+      type: SOCKS # SOCKS or HTTP
+
+  OLLAMA:
+    enabled: true
+    completion_model: qwen2.5-coder:3b
+    completion_endpoint: http://localhost:11434/api/generate
+    #completion_model_system_prompt: REPLACE_ME
+    completion_prompt: "<|fim_prefix|>@before<|fim_suffix|>@after<|fim_middle|>" # @input, @section, @before, @after
+    completion_params:
+      seed: 42
+      temperature: 0.0
+      top_p: 1.0
+      top_k: 0
+      num_predict: 15
+    completion_stops:
+      - "\n"
+      - "<|fim_middle|>"
+    chat_model: qwen2.5-coder:3b
+    #chat_model_system_prompt: REPLACE_ME
+    chat_endpoint: http://localhost:11434/api/chat
+    #chat_stops:
+    #  - "\n"
+    #chat_params:
+    #  - temperature: 0.0
+    quick_action_model: qwen2.5-coder:7b
+    quick_action_endpoint: http://localhost:11434/api/generate
+    #quick_action_system_prompt: REPLACE_ME
+    #quick_action_stops:
+    #  - "\n"
+    #quick_action_params:
+    #  - temperature: 0.0
+
+
+defaults:
+  chat_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
+  completion_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
+  quick_action_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
+  timeout_sec: 60
+
+prompts:
+  - name: technologies
+    description: "Fingerprint web technologies"
+    content: |
+      Analyze the following HTTP response and identify the web technologies used. 
+      List your reasoning for each technology detected.
+
+quick_actions:
+  - name: multipart
+    description: "Transform request to multipart"
+    content: |
+      Transform the following HTTP POST request into a multipart/form-data request:
+  - name: json
+    description: "Transform request to json"
+    content: |
+      Transform the following HTTP POST request into a JSON request:
+  - name: headers_name
+    description: "Extract HTTP header names"
+    content: |
+      From the HTTP request below, extract only the unique header names. List each name on a separate line. Do not include header values.

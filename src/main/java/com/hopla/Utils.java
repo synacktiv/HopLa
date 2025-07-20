@@ -1,14 +1,17 @@
 package com.hopla;
 
 import burp.api.montoya.MontoyaApi;
-import burp.api.montoya.core.ByteArray;
-import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.ui.contextmenu.MessageEditorHttpRequestResponse;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.event.InputEvent;
-import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import static com.hopla.Constants.ERROR_TITLE;
 import static com.hopla.Constants.EXTENSION_NAME;
@@ -26,19 +29,17 @@ public final class Utils {
     }
 
     public static void insertPayload(MessageEditorHttpRequestResponse messageEditor, String payload, InputEvent event) {
-        HttpRequest request = messageEditor.requestResponse().request();
-        ByteArray original = request.toByteArray();
-        ByteArray payloadBytes = ByteArray.byteArray(payload.getBytes(StandardCharsets.UTF_8));
-
         Component source = (Component) event.getSource();
-        int caretPosition = messageEditor.caretPosition();
-        if (source instanceof JTextArea textArea) {
-            caretPosition = textArea.getCaretPosition();
-
+        if (!(source instanceof JTextArea textArea)) {
+            HopLa.montoyaApi.logging().logToError("Invalid component: " + source.getClass().getName());
+            return;
         }
 
-        int start = Math.min(caretPosition, original.length());
-        int end = Math.min(caretPosition, original.length());
+        int caretPosition = textArea.getCaretPosition();
+        int requestLength = textArea.getText().length();
+
+        int start = Math.min(caretPosition, requestLength);
+        int end = Math.min(caretPosition, requestLength);
 
         if (messageEditor.selectionOffsets().isPresent()) {
             var selection = messageEditor.selectionOffsets().get();
@@ -47,19 +48,47 @@ public final class Utils {
             caretPosition = start;
         }
 
-        ByteArray modified = original.subArray(0, start)
-                .withAppended(payloadBytes);
-
-        if (end < original.length()) {
-            modified = modified.withAppended(original.subArray(end, original.length()));
-        }
-
-
-        HttpRequest patched_request = HttpRequest.httpRequest(modified);
-        messageEditor.setRequest(patched_request);
-        if (source instanceof JTextArea textArea) {
+        try {
+            Document doc = textArea.getDocument();
+            doc.remove(start, end - start);
+            doc.insertString(start, payload, null);
             textArea.setCaretPosition(caretPosition + payload.length());
+        } catch (BadLocationException e) {
+            HopLa.montoyaApi.logging().logToError("Inserting payload: " + e.getMessage());
         }
+    }
+
+    public static String getRequest(MessageEditorHttpRequestResponse messageEditor) {
+        return messageEditor.requestResponse().request().toString();
+    }
+
+    public static String getResponse(MessageEditorHttpRequestResponse messageEditor) {
+        if (messageEditor.requestResponse().hasResponse()) {
+            return messageEditor.requestResponse().response().toString();
+        }
+        return "";
+    }
+
+    public static boolean isYamlFile(String path) {
+        return path.toLowerCase().endsWith(".yaml") || path.toLowerCase().endsWith(".yml");
+    }
+
+
+    public static String getSelectedText(MessageEditorHttpRequestResponse messageEditor) {
+        String input = "";
+        if (messageEditor.selectionOffsets().isPresent()) {
+            var selection = messageEditor.selectionOffsets().get();
+            int start = selection.startIndexInclusive();
+            int end = selection.endIndexExclusive();
+            String data = "";
+            if (messageEditor.selectionContext() == MessageEditorHttpRequestResponse.SelectionContext.REQUEST) {
+                data = messageEditor.requestResponse().request().toString();
+            } else {
+                data = messageEditor.requestResponse().response().toString();
+            }
+            input = data.substring(start, end);
+        }
+        return input;
     }
 
     public static String normalizeShortcut(String shortcut) {
@@ -106,6 +135,22 @@ public final class Utils {
         frame.setFocusableWindowState(true);
         frame.setAlwaysOnTop(true);
         return frame;
+    }
+
+    public static JWindow generateJWindow() {
+        JWindow frame = new JWindow();
+        frame.getRootPane().putClientProperty("windowTitle", "");
+        frame.setName("");
+        frame.setLocationRelativeTo(null);
+        frame.setAutoRequestFocus(false);
+        frame.setAlwaysOnTop(true);
+        return frame;
+    }
+
+    public static JsonObject mapToJson(Map<String, Object> map) {
+        Gson gson = new Gson();
+        JsonElement element = gson.toJsonTree(map);
+        return element.getAsJsonObject();
     }
 }
 

@@ -32,6 +32,51 @@ public class Completer {
 
     }
 
+    public static CaretContext getCaretContext(JTextArea source, int caretPosition) {
+        String[] lines = source.getText().split("\n");
+
+        int charCount = 0;
+        int caretLineIndex = 0;
+
+        for (int i = 0; i < lines.length; i++) {
+            charCount += lines[i].length() + 1; // +1 for \n
+            if (caretPosition < charCount) {
+                caretLineIndex = i;
+                break;
+            }
+        }
+
+        int bodyStartIndex = -1;
+        for (int i = 1; i < lines.length; i++) {
+            if (lines[i].trim().isEmpty()) {
+                bodyStartIndex = i + 1;
+                break;
+            }
+        }
+
+        HttpSection section;
+        if (caretLineIndex == 0) {
+            section = HttpSection.REQUEST_LINE;
+        } else if (bodyStartIndex == -1) {
+            section = HttpSection.HEADERS;
+        } else if (caretLineIndex < bodyStartIndex) {
+            section = HttpSection.HEADERS;
+        } else {
+            section = HttpSection.BODY;
+        }
+
+        String textBeforeCaret = source.getText().substring(0, caretPosition);
+        String textAfterCaret = source.getText().substring(caretPosition);
+        if (textAfterCaret.isEmpty()) {
+            textAfterCaret = "\n";
+        }
+        int lastNewline = textBeforeCaret.lastIndexOf('\n');
+        String lineUpToCaret = textBeforeCaret.substring(lastNewline + 1);
+
+
+        return new CaretContext(section, lineUpToCaret, textBeforeCaret, textAfterCaret);
+    }
+
     public JTextArea getSource() {
         return this.source;
     }
@@ -66,13 +111,13 @@ public class Completer {
                 if (autoCompleteMenu.isVisible()) {
                     int keyCode = e.getKeyCode();
                     if (DEBUG) {
-                        api.logging().logToOutput("Key catched");
+                        api.logging().logToOutput("Key caught");
                     }
                     autoCompleteMenu.handleKey(keyCode);
                     e.consume();
                     if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                         if (DEBUG) {
-                            api.logging().logToOutput("Escape key catched");
+                            api.logging().logToOutput("Escape key caught");
                         }
                         escape = true;
                     }
@@ -82,7 +127,6 @@ public class Completer {
         caretListener = new CaretListener() {
             @Override
             public void caretUpdate(CaretEvent e) {
-
 
                 int pos = e.getDot();
 
@@ -109,43 +153,47 @@ public class Completer {
                     api.logging().logToOutput("caret start: " + caretPositionStart + " end: " + pos);
                 }
 
-
-                if (backspace) {
-                    if (DEBUG) {
-                        api.logging().logToOutput("backspace");
-                    }
-
-                    if (pos <= caretPositionStart) {
-                        caretPositionStart = pos;
-                        autoCompleteMenu.hide();
-                    }
-
-                } else if (manual_move || escape) {
+                if ((manual_move || escape) && !backspace) {
                     if (DEBUG) {
                         api.logging().logToOutput("manual move or escape");
                     }
+
                     caretPositionStart = pos;
                     autoCompleteMenu.hide();
                 } else {
+                    if (backspace) {
+                        if (DEBUG) {
+                            api.logging().logToOutput("backspace");
+                        }
+
+                        if (pos <= caretPositionStart) {
+                            caretPositionStart = pos;
+                            autoCompleteMenu.hide();
+                        }
+
+                    }
+
                     try {
                         String content = source.getText(0, pos);
                         String text = content.substring(caretPositionStart);
+                        CaretContext caretContext = getCaretContext(source, pos);
                         if (DEBUG) {
                             api.logging().logToOutput("complete: " + text);
+                            api.logging().logToOutput("Caret context: " + caretContext);
                         }
-                        autoCompleteMenu.suggest(source, text, caretPositionStart, pos, getLastLine(content));
+                        autoCompleteMenu.suggest(source, text, caretPositionStart, pos, caretContext);
 
                     } catch (BadLocationException ex) {
                         if (DEBUG) {
-                            api.logging().logToOutput("Bad location user completion input" + ex.getMessage());
+                            api.logging().logToError("Bad location user completion input" + ex.getMessage());
                         }
                     } catch (StringIndexOutOfBoundsException ex) {
                         if (DEBUG) {
-                            api.logging().logToOutput("Out of bound error start: " + caretPositionStart + " end: " + source.getCaretPosition());
+                            api.logging().logToError("Out of bound error start: " + caretPositionStart + " end: " + source.getCaretPosition());
                         }
                     } catch (Exception ex) {
                         if (DEBUG) {
-                            api.logging().logToOutput("Completion input error: " + ex.getMessage());
+                            api.logging().logToError("Completion input error: " + ex.getMessage());
                         }
                     }
                 }
@@ -176,22 +224,37 @@ public class Completer {
         source.addKeyListener(keyListener);
         source.addFocusListener(focusListener);
     }
-    public static String getLastLine(String input) {
-        if (input == null || input.isBlank()) return "";
-
-        String[] lines = input.split("\\R"); 
-        for (int i = lines.length - 1; i >= 0; i--) {
-            if (!lines[i].isBlank()) {
-                return lines[i];
-            }
-        }
-        return "";
-    }
 
     public void detach() {
         source.removeKeyListener(keyListener);
         source.removeCaretListener(caretListener);
         source.removeFocusListener(focusListener);
+    }
+
+    public enum HttpSection {
+        REQUEST_LINE,
+        HEADERS,
+        BODY,
+        UNKNOWN
+    }
+
+    public static class CaretContext {
+        public final HttpSection section;
+        public final String lineUpToCaret;
+        public final String textBeforeCaret;
+        public final String textAfterCaret;
+
+        public CaretContext(HttpSection section, String lineUpToCaret, String textBeforeCaret, String textAfterCaret) {
+            this.section = section;
+            this.lineUpToCaret = lineUpToCaret;
+            this.textBeforeCaret = textBeforeCaret;
+            this.textAfterCaret = textAfterCaret;
+        }
+
+        @Override
+        public String toString() {
+            return "Section: " + section + ", Line: \"" + lineUpToCaret + "\"";
+        }
     }
 
 }

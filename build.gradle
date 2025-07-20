@@ -1,12 +1,11 @@
-
 plugins {
     id 'java'
 }
 
 compileJava.options.encoding = 'UTF-8'
 
-group = 'burp.extensions'
-version = '2.0.0'
+group = 'com.hopla'
+version = '2.1.0'
 
 repositories {
     mavenCentral()
@@ -17,6 +16,7 @@ dependencies {
     implementation 'org.yaml:snakeyaml:2.4'
     implementation 'com.google.code.gson:gson:2.13.1' 
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation "org.commonmark:commonmark:0.24.0"
 }
 
 jar{
@@ -24,6 +24,15 @@ jar{
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+}
+
+tasks.named('jar') {
+    archiveFileName.set("${project.name}.jar")
+}
+
+
+tasks.withType(Jar).configureEach {
+    destinationDirectory.set(file("$rootDir/releases/"))
 }
 
 
@@ -59,8 +68,22 @@ tasks.register('encryptResource') {
     }
 }
 
+tasks.register('updateVersion') {
+
+    def constantsFile = file('src/main/java/com/hopla/Constants.java')
+    def newVersion = project.version.toString()
+    def content = constantsFile.getText("UTF-8")
+    def updated = content.replaceAll(
+            /(?m)(public static final String VERSION\s*=\s*")[^"]*(";)/,
+            "\$1${newVersion}\$2"
+    )
+    constantsFile.write(updated, "UTF-8")
+    println "Updated Constants.java to version ${newVersion}"
+}
+
 processResources {
     dependsOn encryptResource
+    dependsOn updateVersion
     from(layout.buildDirectory.dir("encryptedResources")) {
         include "default-payloads.enc.yaml"
         into ''
