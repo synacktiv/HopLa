@@ -9,23 +9,23 @@ content generation/transformation. You can also add your own payloads to tailor 
 Developed by Alexis Danizan [![Twitter Follow](https://img.shields.io/twitter/follow/alexisdanizan?style=social)](https://twitter.com/alexisdanizan/)  
 Released as open source by [Synacktiv 🥷](https://www.synacktiv.com/) 
 
+**Features**:
+* Integrate AI-powered autocompletion (Copilot style)
+* Enable AI-based chat for interaction and guidance
+* Use AI instructions to quickly transform HTTP requests
+* Copy formatted requests and responses for easy reporting
+* Search and replace in Repeater
+* Access a one-click payload insertion menu
+* Insert Burp Collaborator domains dynamically
+* Assign keyboard shortcuts to specific payloads
+* Add custom keywords on the fly during testing
+
 ![Demo GIF](img/demo.gif)
 
 <p float="left">
-  <img src="img/quick_actions.png" width="400" />
-  <img src="img/ai_chat.png" width="550" /> 
+  <img src="img/quick_actions.png" width="300" />
+  <img src="img/ai_chat.png" width="450" /> 
 </p>
-
-**Features**:
-  * Integrate AI-powered autocompletion (Copilot style)
-  * Enable AI-based chat for interaction and guidance
-  * Use AI instructions to quickly transform HTTP requests
-  * Copy formatted requests and responses for easy reporting
-  * Search and replace in Repeater
-  * Access a one-click payload insertion menu
-  * Insert Burp Collaborator domains dynamically
-  * Assign keyboard shortcuts to specific payloads
-  * Add custom keywords on the fly during testing
 
 ## Getting started
 
