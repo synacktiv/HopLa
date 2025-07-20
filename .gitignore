@@ -1,3 +1,7 @@
 .gradle
 build
 releases
+gradle
+gradlew
+gradlew.bat
+.idea
