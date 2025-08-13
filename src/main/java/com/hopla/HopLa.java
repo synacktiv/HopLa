@@ -2,6 +2,7 @@ package com.hopla;
 
 
 import burp.api.montoya.BurpExtension;
+import burp.api.montoya.EnhancedCapability;
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.Registration;
 import burp.api.montoya.extension.ExtensionUnloadingHandler;
@@ -16,6 +17,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.AWTEventListener;
 import java.util.ArrayList;
+import java.util.Set;
 
 import static com.hopla.Constants.*;
 import static com.hopla.Utils.alert;
@@ -77,7 +79,12 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
         }
 
         montoyaApi.logging().logToOutput("AI configured: " + aiConfiguration.isAIConfigured);
-        montoyaApi.logging().logToOutput("AI Autocompletion enabled: " + aiAutocompletionEnabled);
+
+
+        if (Constants.EXTERNAL_AI) {
+            montoyaApi.logging().logToOutput("AI Autocompletion enabled: " + aiAutocompletionEnabled);
+        }
+
         montoyaApi.logging().logToOutput("Shortcuts enabled: " + shortcutsEnabled);
         montoyaApi.logging().logToOutput("Autocompletion enabled: " + autocompletionEnabled);
 
@@ -103,6 +110,11 @@ public class HopLa implements BurpExtension, ExtensionUnloadingHandler, AWTEvent
         }
         montoyaApi.logging().logToOutput(Constants.INIT_MESSAGE);
 
+    }
+
+    @Override
+    public Set<EnhancedCapability> enhancedCapabilities() {
+        return Set.of(EnhancedCapability.AI_FEATURES);
     }
 
     public void enableAutocompletion() {

@@ -191,7 +191,7 @@ public class OllamaProvider extends AIProvider {
             messages.add(userMessage);
         }
 
-        for (AIChats.Message message : chat.getMessages()) {
+        for (AIChats.Message message : chat.getMessages().subList(0, chat.getMessages().size() - 1)) {
             JsonObject userMessage = new JsonObject();
             userMessage.addProperty("role", message.getRole().toString().toLowerCase());
             userMessage.addProperty("content", message.getContent());

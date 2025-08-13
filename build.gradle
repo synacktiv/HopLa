@@ -5,7 +5,10 @@ plugins {
 compileJava.options.encoding = 'UTF-8'
 
 group = 'com.hopla'
-version = '2.1.0'
+version = '2.2.0'
+
+// Allow external AI providers
+def externalAIEnabled = false
 
 repositories {
     mavenCentral()
@@ -81,9 +84,22 @@ tasks.register('updateVersion') {
     println "Updated Constants.java to version ${newVersion}"
 }
 
+tasks.register('externalAI') {
+
+    def constantsFile = file('src/main/java/com/hopla/Constants.java')
+    def content = constantsFile.getText("UTF-8")
+    def updated = content.replaceAll(
+            /(?m)(public static final boolean EXTERNAL_AI\s*=\s*)(true|false)(\s*;)/,
+            "\$1${externalAIEnabled}\$3"
+    )
+    constantsFile.write(updated, "UTF-8")
+    println "Updated Constants.java to EXTERNAL_AI ${externalAIEnabled}"
+}
+
 processResources {
     dependsOn encryptResource
     dependsOn updateVersion
+    dependsOn externalAI
     from(layout.buildDirectory.dir("encryptedResources")) {
         include "default-payloads.enc.yaml"
         into ''

@@ -91,6 +91,12 @@ public class CommonMenu {
         askAIMenu.setHorizontalTextPosition(SwingConstants.LEFT);
         items.add(askAIMenu);
         askAIMenu.addActionListener(e -> {
+
+            if (!this.api.ai().isEnabled() && !Constants.EXTERNAL_AI) {
+                Utils.alert(Constants.ERROR_BURP_AI_DISABLED);
+                return;
+            }
+
             String input = getSelectedText(messageEditor);
             HopLa.aiChatPanel.show(messageEditor, event, input);
             actionHandler.run();
@@ -100,6 +106,11 @@ public class CommonMenu {
         aiQuickActionMenu.setHorizontalTextPosition(SwingConstants.LEFT);
         items.add(aiQuickActionMenu);
         aiQuickActionMenu.addActionListener(e -> {
+            if (!this.api.ai().isEnabled() && !Constants.EXTERNAL_AI) {
+                Utils.alert(Constants.ERROR_BURP_AI_DISABLED);
+                return;
+            }
+
             String input = getSelectedText(messageEditor);
             HopLa.aiQuickAction.show(messageEditor, event, input);
             actionHandler.run();

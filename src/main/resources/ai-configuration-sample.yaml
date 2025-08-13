@@ -52,25 +52,32 @@ providers:
       - "\n"
       - "<|fim_middle|>"
     chat_model: qwen2.5-coder:3b
-    #chat_model_system_prompt: REPLACE_ME
+    #chat_system_prompt: REPLACE_ME
     chat_endpoint: http://localhost:11434/api/chat
     #chat_stops:
     #  - "\n"
     #chat_params:
-    #  - temperature: 0.0
+    #  temperature: 0.0
     quick_action_model: qwen2.5-coder:7b
     quick_action_endpoint: http://localhost:11434/api/generate
     #quick_action_system_prompt: REPLACE_ME
     #quick_action_stops:
     #  - "\n"
     #quick_action_params:
-    #  - temperature: 0.0
-
+    #  temperature: 0.0
+  BURP:
+    enabled: true
+    #chat_system_prompt: REPLACE_ME
+    chat_params:
+      temperature: 0.0
+    #quick_action_system_prompt: REPLACE_ME
+    quick_action_params:
+      temperature: 0.0
 
 defaults:
-  chat_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
-  completion_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
-  quick_action_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
+  chat_provider: OLLAMA # OLLAMA, OPENAI, GEMINI, BURP
+  completion_provider: OLLAMA # OLLAMA, OPENAI, GEMINI, BURP
+  quick_action_provider: OLLAMA # OLLAMA, OPENAI, GEMINI, BURP
   timeout_sec: 60
 
 prompts:

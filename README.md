@@ -90,14 +90,14 @@ providers:
       port: 5555
       username: user123
       password: pass123
-      type: SOCKS # SOCKS or HTTP 
+      type: SOCKS # SOCKS or HTTP
   GEMINI:
     enabled: true
     chat_model: gemini-2.0-flash
     chat_endpoint: https://generativelanguage.googleapis.com/v1beta/models/@model:streamGenerateContent?alt=sse&key=@key #HopLa replace @key with api_key value
     #chat_model_system_prompt: REPLACE_ME
     quick_action_endpoint: https://generativelanguage.googleapis.com/v1beta/models/@model:streamGenerateContent?alt=sse&key=@key #HopLa replace @key with api_key value
-    #quick_action_system_prompt: REPLACE_ME    
+    #quick_action_system_prompt: REPLACE_ME
     api_key: REPLACE_ME
     proxy:
       enabled: true
@@ -105,7 +105,7 @@ providers:
       port: 5555
       username: user123
       password: pass123
-      type: SOCKS # SOCKS or HTTP 
+      type: SOCKS # SOCKS or HTTP
 
   OLLAMA:
     enabled: true
@@ -123,25 +123,32 @@ providers:
       - "\n"
       - "<|fim_middle|>"
     chat_model: qwen2.5-coder:3b
-    #chat_model_system_prompt: REPLACE_ME
+    #chat_system_prompt: REPLACE_ME
     chat_endpoint: http://localhost:11434/api/chat
     #chat_stops:
     #  - "\n"
     #chat_params:
-    #  - temperature: 0.0
+    #  temperature: 0.0
     quick_action_model: qwen2.5-coder:7b
     quick_action_endpoint: http://localhost:11434/api/generate
-    #quick_action_system_prompt: REPLACE_ME    
+    #quick_action_system_prompt: REPLACE_ME
     #quick_action_stops:
     #  - "\n"
     #quick_action_params:
-    #  - temperature: 0.0
-    
+    #  temperature: 0.0
+  BURP:
+    enabled: true
+    #chat_system_prompt: REPLACE_ME
+    chat_params:
+      temperature: 0.0
+    #quick_action_system_prompt: REPLACE_ME
+    quick_action_params:
+      temperature: 0.0
 
 defaults:
-  chat_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
-  completion_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
-  quick_action_provider: OLLAMA # OLLAMA, OPENAI, GEMINI
+  chat_provider: OLLAMA # OLLAMA, OPENAI, GEMINI, BURP
+  completion_provider: OLLAMA # OLLAMA, OPENAI, GEMINI, BURP
+  quick_action_provider: OLLAMA # OLLAMA, OPENAI, GEMINI, BURP
   timeout_sec: 60
 
 prompts:
@@ -166,6 +173,7 @@ quick_actions:
       From the HTTP request below, extract only the unique header names. List each name on a separate line. Do not include header values.
 ```
 
+For the BApp Store version of the extension, only the Burp provider is supported.
 
 ### How to customize payloads
 
@@ -211,6 +219,8 @@ keywords:
 ```
 
 ## Build
+
+To enable other providers, set `def externalAIEnabled = true` in `build.gradle`.
 
 Build using Docker or Podman:
 

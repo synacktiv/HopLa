@@ -380,24 +380,26 @@ public class AIChatPanel {
 
         buttonPanel.add(selectBox);
 
-        Map<AIProviderType, LLMConfig.Provider> enabledProviders = aiConfiguration.config.providers.entrySet().stream()
-                .filter(entry -> entry.getValue().enabled)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        if (Constants.EXTERNAL_AI) {
+            Map<AIProviderType, LLMConfig.Provider> enabledProviders = aiConfiguration.config.providers.entrySet().stream()
+                    .filter(entry -> entry.getValue().enabled)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        JComboBox<AIProviderType> aiProviderSelectBox = new JComboBox<>(enabledProviders.keySet().toArray(new AIProviderType[0]));
+            JComboBox<AIProviderType> aiProviderSelectBox = new JComboBox<>(enabledProviders.keySet().toArray(new AIProviderType[0]));
 
-        aiProviderSelectBox.addActionListener(e -> {
-            AIProviderType selectedProvider = (AIProviderType) aiProviderSelectBox.getSelectedItem();
-            if (selectedProvider != null) {
-                currentProvider = selectedProvider;
-                if (DEBUG_AI) {
-                    HopLa.montoyaApi.logging().logToOutput("Provider selected:" + selectedProvider);
+            aiProviderSelectBox.addActionListener(e -> {
+                AIProviderType selectedProvider = (AIProviderType) aiProviderSelectBox.getSelectedItem();
+                if (selectedProvider != null) {
+                    currentProvider = selectedProvider;
+                    if (DEBUG_AI) {
+                        HopLa.montoyaApi.logging().logToOutput("Provider selected:" + selectedProvider);
+                    }
                 }
-            }
-        });
+            });
 
-        aiProviderSelectBox.setSelectedItem(aiConfiguration.defaultChatProvider.type);
-        buttonPanel.add(aiProviderSelectBox);
+            aiProviderSelectBox.setSelectedItem(aiConfiguration.defaultChatProvider.type);
+            buttonPanel.add(aiProviderSelectBox);
+        }
 
 
         bottomBar.add(buttonPanel, BorderLayout.WEST);

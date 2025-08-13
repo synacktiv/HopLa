@@ -1,0 +1,36 @@
+shortcut_ai_chat: Ctrl+J
+shortcut_quick_action: Ctrl+Alt+O
+
+defaults:
+  timeout_sec: 60
+
+providers:
+  BURP:
+    enabled: true
+    #chat_system_prompt: REPLACE_ME
+    chat_params:
+      temperature: 0.0
+    #quick_action_system_prompt: REPLACE_ME
+    quick_action_params:
+      temperature: 0.0
+
+prompts:
+  - name: technologies
+    description: "Fingerprint web technologies"
+    content: |
+      Analyze the following HTTP response and identify the web technologies used. 
+      List your reasoning for each technology detected.
+
+quick_actions:
+  - name: multipart
+    description: "Transform request to multipart"
+    content: |
+      Transform the following HTTP POST request into a multipart/form-data request:
+  - name: json
+    description: "Transform request to json"
+    content: |
+      Transform the following HTTP POST request into a JSON request:
+  - name: headers_name
+    description: "Extract HTTP header names"
+    content: |
+      From the HTTP request below, extract only the unique header names. List each name on a separate line. Do not include header values.

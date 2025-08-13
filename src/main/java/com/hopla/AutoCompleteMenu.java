@@ -76,7 +76,7 @@ public class AutoCompleteMenu {
 
         List<String> suggestions = this.payloadManager.getSuggestions(input);
 
-        if (hopla.aiAutocompletionEnabled && aiConfiguration.isAIConfigured && input.length() > HopLa.aiConfiguration.config.autocompletion_min_chars) {
+        if (Constants.EXTERNAL_AI && hopla.aiAutocompletionEnabled && aiConfiguration.isAIConfigured && input.length() > HopLa.aiConfiguration.config.autocompletion_min_chars) {
             debouncer.trigger(() ->
                     new AICompletion(suggestionList, suggestions, input, caretContext)
             );

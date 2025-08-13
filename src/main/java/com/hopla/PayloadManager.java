@@ -141,7 +141,7 @@ public class PayloadManager {
 
         Yaml yaml = new Yaml(new Constructor(PayloadDefinition.class, loaderoptions));
         PayloadDefinition data = null;
-        if (decrypt){
+        if (decrypt) {
             // decrypt embedded resource
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             byte[] buffer = new byte[4096];
@@ -160,7 +160,7 @@ public class PayloadManager {
             byte[] content = cipher.doFinal(encryptedData);
             data = yaml.load(new String(content));
 
-        }else{
+        } else {
             data = yaml.load(in);
         }
 

@@ -3,7 +3,8 @@ package com.hopla.ai;
 public enum AIProviderType {
     OLLAMA("Ollama"),
     GEMINI("Gemini"),
-    OPENAI("OpenAI");
+    OPENAI("OpenAI"),
+    BURP("Burp");
 
     private final String displayName;
 

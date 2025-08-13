@@ -81,7 +81,7 @@ public class GeminiProvider extends AIProvider {
             );
         }
 
-        for (AIChats.Message message : chat.getMessages()) {
+        for (AIChats.Message message : chat.getMessages().subList(0, chat.getMessages().size() - 1)) {
             geminiRequest.contents.add(
                     new GeminiRequest.Content(
                             AIChats.MessageRole.USER.toString(),

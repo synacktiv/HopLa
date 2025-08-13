@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.hopla.Constants.DEBUG_AI;
+import static com.hopla.Constants.EXTERNAL_AI;
 
 public abstract class AIProvider {
     protected static Gson gson = new Gson();
@@ -33,7 +34,9 @@ public abstract class AIProvider {
         this.type = type;
         this.config = config;
         this.providerConfig = providerConfig;
-        this.buildClient();
+        if (EXTERNAL_AI) {
+            this.buildClient();
+        }
     }
 
     private void buildClient() {

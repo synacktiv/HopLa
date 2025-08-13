@@ -35,7 +35,7 @@ public class MenuBar {
         JMenuItem chooseItem = new JMenuItem(Constants.MENU_ITEM_CHOOSE_PAYLOAD);
         chooseItem.addActionListener(e -> {
             payloadManager.choosePayloadFile();
-            pathItem.setText("Loaded payloads: " +getPayloadsFilename());
+            pathItem.setText("Loaded payloads: " + getPayloadsFilename());
             reloadShortcuts();
         });
 
@@ -62,7 +62,7 @@ public class MenuBar {
         aiConfigurationChooseItem.addActionListener(e -> {
             aiConfiguration.chooseConfigurationFile();
             aiConfigurationPathItem.setText("Loaded AI conf: " + aiConfiguration.getCurrentPath());
-            completionProviderItem.setText("AI completion provider: " +  aiConfiguration.getCompletionProviderName());
+            completionProviderItem.setText("AI completion provider: " + aiConfiguration.getCompletionProviderName());
             quickActionProviderItem.setText("AI quick action provider: " + aiConfiguration.getQuickActionProviderName());
             reloadShortcuts();
         });
@@ -107,6 +107,7 @@ public class MenuBar {
             api.logging().logToOutput("AI autocompletion: " + (hopla.aiAutocompletionEnabled ? "enabled" : "disabled"));
         });
 
+
         JMenuItem exportDefaultAIConfItem = new JMenuItem(Constants.MENU_ITEM_EXPORT_DEFAULT_AI_CONF);
         exportDefaultAIConfItem.addActionListener(e -> {
             HopLa.aiConfiguration.export();
@@ -133,14 +134,20 @@ public class MenuBar {
             }
 
         });
+        if (Constants.EXTERNAL_AI) {
+            menu.add(enableAIItem);
+        }
 
-        menu.add(enableAIItem);
         menu.add(exportDefaultAIConfItem);
         menu.add(aiConfigurationChooseItem);
         menu.add(aiConfigurationReloadItem);
         menu.add(aiConfigurationPathItem);
-        menu.add(completionProviderItem);
-        menu.add(quickActionProviderItem);
+
+        if (Constants.EXTERNAL_AI) {
+            menu.add(completionProviderItem);
+            menu.add(quickActionProviderItem);
+        }
+
         menu.add(new JSeparator());
         menu.add(pathItem);
         menu.add(chooseItem);

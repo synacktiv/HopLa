@@ -79,7 +79,6 @@ public class AIQuickAction {
         instruction.setText(input);
 
 
-
         output = new JTextPane();
         output.setEditable(false);
         output.setOpaque(false);
