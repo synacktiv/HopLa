@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 import static com.hopla.Constants.DEFAULT_AI_CONFIGURATION_PATH;
+import static com.hopla.Constants.DEFAULT_BAPP_AI_CONFIGURATION_PATH;
 import static com.hopla.Utils.isYamlFile;
 
 public class AIConfiguration {
@@ -53,11 +54,19 @@ public class AIConfiguration {
 
     public String getCurrentPath() {
         String path = preferences.getString(Constants.PREFERENCE_AI_CONFIGURATION);
-        return (path != null && !path.isEmpty()) ? path : "Not configured";
+        if (Constants.EXTERNAL_AI){
+            return (path != null && !path.isEmpty()) ? (path) : "Not configured";
+        }else {
+            return (path != null && !path.isEmpty()) ? (path.equals(DEFAULT_BAPP_AI_CONFIGURATION_PATH) ? "Burp default" : path) : "Not configured";
+        }
     }
 
     public boolean load() {
         String savedPath = preferences.getString(Constants.PREFERENCE_AI_CONFIGURATION);
+
+        if ((savedPath == null || savedPath.isEmpty()) && !Constants.EXTERNAL_AI) {
+            savedPath = DEFAULT_BAPP_AI_CONFIGURATION_PATH;
+        }
 
         if (savedPath != null && !savedPath.isEmpty() && !DEFAULT_AI_CONFIGURATION_PATH.equals(savedPath)) {
             try {
@@ -75,9 +84,15 @@ public class AIConfiguration {
     }
 
     public void export() {
-        InputStream inputStream = getClass().getResourceAsStream(DEFAULT_AI_CONFIGURATION_PATH);
+        String default_configuration_file = DEFAULT_BAPP_AI_CONFIGURATION_PATH;
+
+        if (Constants.EXTERNAL_AI) {
+            default_configuration_file = DEFAULT_AI_CONFIGURATION_PATH;
+        }
+
+        InputStream inputStream = getClass().getResourceAsStream(default_configuration_file);
         if (inputStream == null) {
-            String exc = "Default AI configuration sample not found: " + DEFAULT_AI_CONFIGURATION_PATH;
+            String exc = "Default AI configuration sample not found: " + default_configuration_file;
             api.logging().logToError(exc);
             Utils.alert(exc);
             return;
@@ -86,7 +101,7 @@ public class AIConfiguration {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             sample = reader.lines().collect(Collectors.joining("\n"));
         } catch (Exception e) {
-            String exc = "Failed to read AI configuration sample: " + DEFAULT_AI_CONFIGURATION_PATH;
+            String exc = "Failed to read AI configuration sample: " + default_configuration_file;
             api.logging().logToError(exc);
             Utils.alert(exc);
         }
@@ -116,20 +131,28 @@ public class AIConfiguration {
     }
 
     private LLMConfig loadFromFile(String path) throws Exception {
-        try (InputStream in = Files.newInputStream(Paths.get(path))) {
-            LLMConfig config = yaml.load(in);
-            AIProviderType chatProviderType = AIProviderType.valueOf(config.defaults.chat_provider);
-            AIProviderType completionProviderType = AIProviderType.valueOf(config.defaults.completion_provider);
-            AIProviderType quickActionProviderType = AIProviderType.valueOf(config.defaults.quick_action_provider);
-            defaultChatProvider = AIProviderFactory.createProvider(chatProviderType, config, config.providers.get(chatProviderType));
-            completionProvider = AIProviderFactory.createProvider(completionProviderType, config, config.providers.get(completionProviderType));
-            quickActionProvider = AIProviderFactory.createProvider(quickActionProviderType, config, config.providers.get(quickActionProviderType));
 
-            new Thread(() -> {
-                defaultChatProvider.testChatConfiguration();
-                completionProvider.testCompletionConfiguration();
-                quickActionProvider.testInstructConfiguration();
-            }).start();
+        try (InputStream in = path.equals(DEFAULT_BAPP_AI_CONFIGURATION_PATH) ? getClass().getResourceAsStream(path) : Files.newInputStream(Paths.get(path))) {
+            LLMConfig config = yaml.load(in);
+
+            if (Constants.EXTERNAL_AI) {
+                AIProviderType chatProviderType = AIProviderType.valueOf(config.defaults.chat_provider);
+                AIProviderType completionProviderType = AIProviderType.valueOf(config.defaults.completion_provider);
+                AIProviderType quickActionProviderType = AIProviderType.valueOf(config.defaults.quick_action_provider);
+                defaultChatProvider = AIProviderFactory.createProvider(chatProviderType, config, config.providers.get(chatProviderType));
+                completionProvider = AIProviderFactory.createProvider(completionProviderType, config, config.providers.get(completionProviderType));
+                quickActionProvider = AIProviderFactory.createProvider(quickActionProviderType, config, config.providers.get(quickActionProviderType));
+
+                new Thread(() -> {
+                    defaultChatProvider.testChatConfiguration();
+                    completionProvider.testCompletionConfiguration();
+                    quickActionProvider.testInstructConfiguration();
+                }).start();
+
+            } else {
+                defaultChatProvider = AIProviderFactory.createProvider(AIProviderType.BURP, config, config.providers.get(AIProviderType.BURP));
+                quickActionProvider = AIProviderFactory.createProvider(AIProviderType.BURP, config, config.providers.get(AIProviderType.BURP));
+            }
 
             return config;
         }

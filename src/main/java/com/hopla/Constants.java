@@ -14,6 +14,7 @@ public final class Constants {
     public static final String PREFERENCE_AI_CHATS = "HOPLA_AI_CHATS";
     public static final String DEFAULT_PAYLOAD_RESOURCE_PATH = "/default-payloads.enc.yaml";
     public static final String DEFAULT_AI_CONFIGURATION_PATH = "/ai-configuration-sample.yaml";
+    public static final String DEFAULT_BAPP_AI_CONFIGURATION_PATH = "/ai-bapp-configuration-sample.yaml";
     public static final String MENU_ITEM_CHOOSE_PAYLOAD = "Choose payloads file";
     public static final String MENU_ITEM_CHOOSE_AI_CONFIGURATION = "Choose AI configuration file";
     public static final String MENU_ITEM_RELOAD_PAYLOADS = "Reload Payloads";
@@ -27,10 +28,13 @@ public final class Constants {
     public static final String ERROR_INVALID_FILE_EXTENSION = "Please select a .yaml or .yml file.";
     public static final String ERROR_EMPTY_FILE = "The selected YAML file is empty or invalid.";
     public static final String ERROR_INVALID_FILE = "Failed to load the file:\n";
+    public static final String ERROR_BURP_AI_DISABLED = "This feature is only available on the AI version of Burp.";
     public static final String FILE_LOADED = "Payloads file loaded";
     public static final String CONFIGURATION_FILE_LOADED = "AI configuration file loaded";
     public static final String ERROR_TITLE = "HopLa Error";
     public static final String DEFAULT_RESOURCE_ENCRYPT_KEY = "1234567890123456";
+    // Allow external AI providers
+    public static final boolean EXTERNAL_AI = true;
     public static boolean DEBUG = false;
     public static boolean DEBUG_AI = false;
     public static boolean AWT_DEBUG = false;

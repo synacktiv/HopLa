@@ -9,6 +9,8 @@ public class AIProviderFactory {
                 return new OllamaProvider(config, providerConfig);
             case OPENAI:
                 return new OpenAIProvider(config, providerConfig);
+            case BURP:
+                return new BurpProvider(config, providerConfig);
             default:
                 throw new IllegalArgumentException("Provider unsupported: " + type);
         }
