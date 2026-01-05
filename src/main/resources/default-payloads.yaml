@@ -338,7 +338,7 @@ categories:
           X-Rewrite-URL: /
           X-Originating-IP: 127.0.0.1
           X-Forwarded-For: 127.0.0.1
-          X-Forwared-Host: 127.0.0.1
+          X-Forwarded-Host: 127.0.0.1
           X-Remote-IP: 127.0.0.1
           X-Client-IP: 127.0.0.1
           X-Host: 127.0.0.1
